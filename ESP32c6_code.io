@@ -157,24 +157,41 @@ void setup() {
   Serial.begin(115200);
   delay(1000);
   Serial.println("\n\n=== ESP32-C6 Plant Monitor ===");
+  Serial.println("Simple Real-Time Monitoring (No Historical Data)");
   
   // Initialize relay
+  Serial.println("[INIT] Configuring relay...");
   pinMode(RELAY_PIN, OUTPUT);
   digitalWrite(RELAY_PIN, LOW);
   
   // Initialize sensors
+  Serial.print("[INIT] Configuring ");
+  Serial.print(NUM_SENSORS);
+  Serial.println(" sensor(s)...");
   for (int i = 0; i < NUM_SENSORS; i++) {
     pinMode(SENSOR_PINS[i], INPUT);
   }
   
+  Serial.println("[INIT] Starting DHT sensor...");
   dht.begin();
+  
+  Serial.println("[INIT] Connecting to WiFi...");
   setupWiFi();
+  
+  Serial.println("[INIT] Starting web server...");
   setupServer();
   server.begin();
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.print("[INIT] System ready at http://");
+    Serial.println(WiFi.localIP());
+  }
   
   startTime = millis();
   readSensors();
   readDHT();
+  
+  Serial.println("\n=== READY ===\n");
 }
 
 void loop() {
@@ -267,10 +284,13 @@ float convertToMoisture(int adcValue) {
 }
 
 void handleRoot() {
+  Serial.println("[WEB] Homepage requested");
   server.send(200, "text/html", index_html);
 }
 
 void handleGetSensors() {
+  Serial.println("[API] /api/sensors requested");
+  
   JsonDocument doc; // ArduinoJson v7
   JsonArray sensors = doc.createNestedArray("sensors");
   
@@ -299,6 +319,8 @@ void handleGetSensors() {
   
   String response;
   serializeJson(doc, response);
+  Serial.print("[API] Sending: ");
+  Serial.println(response);
   server.send(200, "application/json", response);
 }
 
