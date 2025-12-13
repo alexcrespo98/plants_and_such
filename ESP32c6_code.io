@@ -6,7 +6,7 @@
  * 2. ArduinoJson v7 compatible.
  * 3. Correct Pinout for XIAO C6.
  * * ENHANCEMENTS:
- * 1. Historical data tracking (30-min intervals, 48 data points)
+ * 1. Historical data tracking (two-tier: 336 detailed + 360 compressed points)
  * 2. Automatic watering scheduler with configurable interval/duration
  * 3. Manual watering with duration control and countdown
  * 4. UI improvements with graphs and countdown displays
@@ -59,6 +59,10 @@ DHT dht(DHT_PIN, DHT_TYPE);
 // Preferences for persistent storage
 Preferences preferences;
 
+// Data restoration limits (to avoid long boot times)
+const int MAX_RESTORE_DETAILED_POINTS = 100;
+const int MAX_RESTORE_COMPRESSED_POINTS = 50;
+
 // Historical data structure
 struct HistoricalData {
   unsigned long timestamp;
@@ -90,10 +94,10 @@ int autoWaterDurationSeconds = 20;
 unsigned long lastAutoWaterTime = 0;
 unsigned long nextAutoWaterTime = 0;
 
-// Manual watering state
-bool manualWateringActive = false;
-unsigned long manualWateringEndTime = 0;
-int manualWateringDuration = 0;
+// Watering state (used for both manual and automatic watering)
+bool wateringActive = false;
+unsigned long wateringEndTime = 0;
+int wateringDuration = 0;
 
 // Global variables
 bool relayState = false;
@@ -113,7 +117,7 @@ const char index_html[] PROGMEM = R"rawliteral(
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ESP32 Plant Monitor</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" integrity="sha384-8DqVJJaXJqn7f7s1RLUP8WFvYwcPBbvXNlh8mwqZKBmLkBBJfLLBZjCHIkC6yqWB" crossorigin="anonymous"></script>
   <style>
     body { font-family: monospace; background: #000; color: #0f0; padding: 20px; text-align: center; max-width: 800px; margin: 0 auto; }
     h1 { color: #0f0; margin-bottom: 10px; }
@@ -354,7 +358,15 @@ const char index_html[] PROGMEM = R"rawliteral(
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({intervalHours: interval, durationSeconds: duration})
       }).then(() => {
-        alert('Settings saved!');
+        // Show temporary success message
+        const btn = event.target;
+        const originalText = btn.innerText;
+        btn.innerText = '✓ Saved!';
+        btn.className = 'btn btn-active';
+        setTimeout(() => {
+          btn.innerText = originalText;
+          btn.className = 'btn';
+        }, 2000);
         loadAutoSettings();
       });
     }
@@ -571,10 +583,10 @@ void handleGetSensors() {
   doc["dhtConnected"] = dhtConnected;
   doc["relay"] = relayState ? "on" : "off";
   
-  // Manual watering status
-  doc["manualWateringActive"] = manualWateringActive;
-  if (manualWateringActive) {
-    long remaining = (long)(manualWateringEndTime - millis()) / 1000;
+  // Watering status (manual or automatic)
+  doc["manualWateringActive"] = wateringActive;
+  if (wateringActive) {
+    long remaining = (long)(wateringEndTime - millis()) / 1000;
     doc["manualWateringRemaining"] = max(0L, remaining);
   } else {
     doc["manualWateringRemaining"] = 0;
@@ -671,7 +683,7 @@ void loadPreferences() {
     detailedHistoryCount = preferences.getInt("detailedCount", 0);
     if (detailedHistoryCount > 0 && detailedHistoryCount <= MAX_DETAILED_HISTORY) {
       // Only restore a subset to avoid long boot times
-      int restoreCount = min(detailedHistoryCount, 100); // Restore last 100 points
+      int restoreCount = min(detailedHistoryCount, MAX_RESTORE_DETAILED_POINTS);
       int startOffset = max(0, detailedHistoryCount - restoreCount);
       
       for (int i = 0; i < restoreCount; i++) {
@@ -692,7 +704,7 @@ void loadPreferences() {
     // Restore compressed history
     compressedHistoryCount = preferences.getInt("compressedCount", 0);
     if (compressedHistoryCount > 0 && compressedHistoryCount <= MAX_COMPRESSED_HISTORY) {
-      int restoreCount = min(compressedHistoryCount, 50); // Restore last 50 points
+      int restoreCount = min(compressedHistoryCount, MAX_RESTORE_COMPRESSED_POINTS);
       int startOffset = max(0, compressedHistoryCount - restoreCount);
       
       for (int i = 0; i < restoreCount; i++) {
@@ -934,10 +946,6 @@ void handlePostManualWater() {
 
 void startWatering(int durationSeconds, bool isManual) {
   if (isManual) {
-    manualWateringActive = true;
-    manualWateringDuration = durationSeconds;
-    manualWateringEndTime = millis() + (durationSeconds * 1000UL);
-    
     Serial.print("Starting manual watering for ");
     Serial.print(durationSeconds);
     Serial.println(" seconds");
@@ -949,12 +957,12 @@ void startWatering(int durationSeconds, bool isManual) {
     // Schedule next auto-water
     lastAutoWaterTime = millis();
     nextAutoWaterTime = millis() + (autoWaterIntervalHours * 3600UL * 1000UL);
-    
-    // Use the manual watering mechanism for timing
-    manualWateringActive = true;
-    manualWateringDuration = durationSeconds;
-    manualWateringEndTime = millis() + (durationSeconds * 1000UL);
   }
+  
+  // Set watering state
+  wateringActive = true;
+  wateringDuration = durationSeconds;
+  wateringEndTime = millis() + (durationSeconds * 1000UL);
   
   // Turn on relay
   relayState = true;
@@ -962,8 +970,8 @@ void startWatering(int durationSeconds, bool isManual) {
 }
 
 void checkAutoWatering() {
-  // Don't start auto-watering if manual watering is active
-  if (manualWateringActive) return;
+  // Don't start auto-watering if watering is already active
+  if (wateringActive) return;
   
   // Check if it's time for auto-watering
   if (millis() >= nextAutoWaterTime) {
@@ -972,12 +980,12 @@ void checkAutoWatering() {
 }
 
 void checkManualWatering() {
-  if (manualWateringActive) {
-    if (millis() >= manualWateringEndTime) {
+  if (wateringActive) {
+    if (millis() >= wateringEndTime) {
       // Turn off relay
       relayState = false;
       digitalWrite(RELAY_PIN, LOW);
-      manualWateringActive = false;
+      wateringActive = false;
       
       Serial.println("Watering completed");
     }
