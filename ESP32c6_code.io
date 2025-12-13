@@ -424,21 +424,29 @@ const char index_html[] PROGMEM = R"rawliteral(
       });
     }
     
-    // Initialize charts (with error handling so page still works if charts fail)
-    try {
-      initCharts();
-      setTimeRange('24h');
-    } catch (err) {
-      console.error('Error initializing charts:', err);
-      document.getElementById('historyStatus').innerHTML = '⚠️ Charts unavailable (Chart.js failed to load)';
-    }
-    
-    // Load data immediately and set up intervals
+    // Load data immediately and set up intervals (MUST happen first!)
+    console.log('Starting data refresh...');
     loadData();
-    loadHistory();
     loadAutoSettings();
     setInterval(loadData, 2000);
-    setInterval(loadHistory, 60000);
+    
+    // Initialize charts (with error handling so page still works if charts fail)
+    // Do this AFTER starting data refresh so core functionality works
+    try {
+      if (typeof Chart !== 'undefined') {
+        console.log('Chart.js loaded, initializing charts...');
+        initCharts();
+        setTimeRange('24h');
+        loadHistory();
+        setInterval(loadHistory, 60000);
+      } else {
+        console.warn('Chart.js not loaded, skipping charts');
+        document.getElementById('historyStatus').innerHTML = '⚠️ Charts unavailable (Chart.js not loaded - check internet connection)';
+      }
+    } catch (err) {
+      console.error('Error initializing charts:', err);
+      document.getElementById('historyStatus').innerHTML = '⚠️ Charts unavailable (error: ' + err.message + ')';
+    }
   </script>
 </body>
 </html>
