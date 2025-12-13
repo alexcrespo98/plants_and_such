@@ -473,33 +473,55 @@ void setup() {
   Serial.begin(115200);
   delay(1000);
   Serial.println("\n\n=== ESP32-C6 Plant Monitor ===");
+  Serial.println("Version: Enhanced with Historical Data & Auto-Watering");
+  Serial.println("Build Date: " __DATE__ " " __TIME__);
   
   // Initialize relay
+  Serial.println("\n[INIT] Configuring relay pin...");
   pinMode(RELAY_PIN, OUTPUT);
   digitalWrite(RELAY_PIN, LOW);
+  Serial.println("[INIT] Relay initialized (OFF)");
   
   // Initialize sensors
+  Serial.print("[INIT] Configuring ");
+  Serial.print(NUM_SENSORS);
+  Serial.println(" moisture sensor(s)...");
   for (int i = 0; i < NUM_SENSORS; i++) {
     pinMode(SENSOR_PINS[i], INPUT);
   }
+  Serial.println("[INIT] Moisture sensors initialized");
   
   // Load preferences
+  Serial.println("\n[INIT] Loading preferences from flash...");
   loadPreferences();
   
+  Serial.println("\n[INIT] Starting DHT sensor...");
   dht.begin();
+  
+  Serial.println("[INIT] Connecting to WiFi...");
   setupWiFi();
+  
+  Serial.println("\n[INIT] Setting up web server...");
   setupServer();
   server.begin();
+  Serial.print("[INIT] Web server started at http://");
+  Serial.println(WiFi.localIP());
   
   startTime = millis();
+  
+  Serial.println("\n[INIT] Reading initial sensor values...");
   readSensors();
   readDHT();
   
   // Initialize auto-watering schedule
   nextAutoWaterTime = millis() + (autoWaterIntervalHours * 3600UL * 1000UL);
-  Serial.print("Auto-watering scheduled in ");
+  Serial.print("\n[INIT] Auto-watering scheduled in ");
   Serial.print(autoWaterIntervalHours);
   Serial.println(" hours");
+  
+  Serial.println("\n=== INITIALIZATION COMPLETE ===");
+  Serial.println("System ready! Monitoring started...");
+  Serial.println("===============================\n");
 }
 
 void loop() {
@@ -507,24 +529,28 @@ void loop() {
   
   static unsigned long lastSoilReadTime = 0;
   if (millis() - lastSoilReadTime >= 2000) {
+    Serial.println("[SENSORS] Reading soil moisture...");
     readSensors();
     lastSoilReadTime = millis();
   }
   
   static unsigned long lastDHTReadTime = 0;
   if (millis() - lastDHTReadTime >= 5000) {
+    Serial.println("[SENSORS] Reading DHT sensor...");
     readDHT();
     lastDHTReadTime = millis();
   }
   
   // Check if it's time to save detailed historical data
   if (millis() - lastDetailedSave >= DETAILED_INTERVAL) {
+    Serial.println("[HISTORY] Saving detailed data...");
     saveDetailedHistoricalData();
     lastDetailedSave = millis();
   }
   
   // Check if it's time to save compressed historical data
   if (millis() - lastCompressedSave >= COMPRESSED_INTERVAL) {
+    Serial.println("[HISTORY] Saving compressed data...");
     saveCompressedHistoricalData();
     lastCompressedSave = millis();
   }
@@ -559,6 +585,7 @@ void setupWiFi() {
 }
 
 void setupServer() {
+  Serial.println("Setting up web server routes...");
   server.enableCORS(true);
   server.on("/", HTTP_GET, handleRoot);
   server.on("/api/sensors", HTTP_GET, handleGetSensors);
@@ -569,10 +596,10 @@ void setupServer() {
   server.on("/api/auto-water", HTTP_POST, handlePostAutoWater);
   server.on("/api/manual-water", HTTP_POST, handlePostManualWater);
   server.onNotFound(handleNotFound);
+  Serial.println("Web server routes configured");
 }
 
 void readSensors() {
-  Serial.println("Reading sensors...");
   for (int i = 0; i < NUM_SENSORS; i++) {
     int total = 0;
     for (int j = 0; j < 5; j++) {
@@ -585,9 +612,19 @@ void readSensors() {
     if (rawValue < SENSOR_MIN_VALID || rawValue > SENSOR_MAX_VALID) {
       sensorConnected[i] = false;
       moisturePercentages[i] = -1;
+      Serial.print("  Sensor ");
+      Serial.print(i + 1);
+      Serial.println(": DISCONNECTED");
     } else {
       sensorConnected[i] = true;
       moisturePercentages[i] = convertToMoisture(rawValue);
+      Serial.print("  Sensor ");
+      Serial.print(i + 1);
+      Serial.print(": ");
+      Serial.print(moisturePercentages[i], 1);
+      Serial.print("% (raw: ");
+      Serial.print(rawValue);
+      Serial.println(")");
     }
   }
 }
@@ -597,10 +634,16 @@ void readDHT() {
   float t = dht.readTemperature();
   if (isnan(h) || isnan(t)) {
     dhtConnected = false;
+    Serial.println("  DHT: DISCONNECTED");
   } else {
     dhtConnected = true;
     humidity = h;
     temperature = t;
+    Serial.print("  DHT: ");
+    Serial.print(t, 1);
+    Serial.print("°C, ");
+    Serial.print(h, 1);
+    Serial.println("% humidity");
   }
 }
 
@@ -614,10 +657,13 @@ float convertToMoisture(int adcValue) {
 }
 
 void handleRoot() {
+  Serial.println("[HTTP] GET / - Serving HTML page");
   server.send(200, "text/html", index_html);
 }
 
 void handleGetSensors() {
+  Serial.println("[HTTP] GET /api/sensors - Building response");
+  
   JsonDocument doc; // ArduinoJson v7
   JsonArray sensors = doc.createNestedArray("sensors");
   
@@ -659,7 +705,15 @@ void handleGetSensors() {
   
   String response;
   serializeJson(doc, response);
+  
+  Serial.print("[HTTP] Response size: ");
+  Serial.print(response.length());
+  Serial.println(" bytes");
+  Serial.print("[HTTP] JSON: ");
+  Serial.println(response);
+  
   server.send(200, "application/json", response);
+  Serial.println("[HTTP] Response sent");
 }
 
 void handlePostRelay() {
@@ -708,6 +762,8 @@ void handleGetStatus() {
 }
 
 void handleNotFound() {
+  Serial.print("[HTTP] 404 - Not found: ");
+  Serial.println(server.uri());
   server.send(404, "application/json", "{\"error\":\"Not found\"}");
 }
 
