@@ -302,8 +302,16 @@ const char index_html[] PROGMEM = R"rawliteral(
     
     function loadData() {
       fetch('/api/sensors')
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) throw new Error('Network response was not ok');
+          return res.json();
+        })
         .then(data => {
+          // Validate data structure
+          if (!data || typeof data !== 'object') {
+            throw new Error('Invalid data structure');
+          }
+          
           // Environment
           var envHtml = '';
           if (data.dhtConnected) {
@@ -316,11 +324,15 @@ const char index_html[] PROGMEM = R"rawliteral(
           
           // Sensors
           var html = '';
-          for (var i = 0; i < data.sensors.length; i++) {
-            var s = data.sensors[i];
-            var status = s.connected ? (s.moisture.toFixed(1) + '%') : 'Disconnected';
-            var icon = s.connected ? (s.moisture < 30 ? '🌵' : s.moisture < 60 ? '🌿' : '💧') : '❌';
-            html += '<div class="sensor">' + icon + ' Sensor ' + s.id + ': ' + status + '</div>';
+          if (data.sensors && Array.isArray(data.sensors)) {
+            for (var i = 0; i < data.sensors.length; i++) {
+              var s = data.sensors[i];
+              var status = s.connected ? (s.moisture.toFixed(1) + '%') : 'Disconnected';
+              var icon = s.connected ? (s.moisture < 30 ? '🌵' : s.moisture < 60 ? '🌿' : '💧') : '❌';
+              html += '<div class="sensor">' + icon + ' Sensor ' + s.id + ': ' + status + '</div>';
+            }
+          } else {
+            html = '<div style="color:#f00">⚠️ No sensor data available</div>';
           }
           document.getElementById('sensors').innerHTML = html;
           
@@ -341,6 +353,11 @@ const char index_html[] PROGMEM = R"rawliteral(
           } else {
             document.getElementById('autoCountdown').innerHTML = '⏰ Auto-watering scheduled';
           }
+        })
+        .catch(err => {
+          console.error('Error loading sensor data:', err);
+          document.getElementById('environment').innerHTML = '<div style="color:#f00">⚠️ Connection Error</div>';
+          document.getElementById('sensors').innerHTML = '<div style="color:#f00">⚠️ Unable to load sensor data</div>';
         });
     }
     
@@ -407,8 +424,16 @@ const char index_html[] PROGMEM = R"rawliteral(
       });
     }
     
-    initCharts();
-    setTimeRange('24h');
+    // Initialize charts (with error handling so page still works if charts fail)
+    try {
+      initCharts();
+      setTimeRange('24h');
+    } catch (err) {
+      console.error('Error initializing charts:', err);
+      document.getElementById('historyStatus').innerHTML = '⚠️ Charts unavailable (Chart.js failed to load)';
+    }
+    
+    // Load data immediately and set up intervals
     loadData();
     loadHistory();
     loadAutoSettings();
