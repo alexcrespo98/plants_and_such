@@ -5,12 +5,18 @@
  * 1. Fixed "empty character constant" error by securing the HTML string.
  * 2. ArduinoJson v7 compatible.
  * 3. Correct Pinout for XIAO C6.
+ * * ENHANCEMENTS:
+ * 1. Historical data tracking (30-min intervals, 48 data points)
+ * 2. Automatic watering scheduler with configurable interval/duration
+ * 3. Manual watering with duration control and countdown
+ * 4. UI improvements with graphs and countdown displays
  */
 
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ArduinoJson.h>
 #include <DHT.h>
+#include <Preferences.h>
 
 // ============================================
 // CONFIGURATION - CHANGE THESE FOR YOUR SETUP
@@ -50,6 +56,35 @@ WebServer server(80);
 // DHT Sensor
 DHT dht(DHT_PIN, DHT_TYPE);
 
+// Preferences for persistent storage
+Preferences preferences;
+
+// Historical data structure
+struct HistoricalData {
+  unsigned long timestamp;
+  float temperature;
+  float humidity;
+  float avgMoisture;
+};
+
+const int MAX_HISTORY = 48; // 48 points = 24 hours at 30-min intervals
+HistoricalData history[MAX_HISTORY];
+int historyCount = 0;
+int historyIndex = 0;
+unsigned long lastHistorySave = 0;
+const unsigned long HISTORY_INTERVAL = 30UL * 60UL * 1000UL; // 30 minutes
+
+// Automatic watering configuration
+int autoWaterIntervalHours = 12;
+int autoWaterDurationSeconds = 20;
+unsigned long lastAutoWaterTime = 0;
+unsigned long nextAutoWaterTime = 0;
+
+// Manual watering state
+bool manualWateringActive = false;
+unsigned long manualWateringEndTime = 0;
+int manualWateringDuration = 0;
+
 // Global variables
 bool relayState = false;
 unsigned long startTime = 0;
@@ -68,32 +103,126 @@ const char index_html[] PROGMEM = R"rawliteral(
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ESP32 Plant Monitor</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    body { font-family: monospace; background: #000; color: #0f0; padding: 20px; text-align: center; max-width: 600px; margin: 0 auto; }
+    body { font-family: monospace; background: #000; color: #0f0; padding: 20px; text-align: center; max-width: 800px; margin: 0 auto; }
     h1 { color: #0f0; margin-bottom: 10px; }
+    h2 { color: #0f0; margin: 10px 0; font-size: 18px; }
     .section { border: 2px solid #0f0; padding: 15px; margin: 20px 0; background: #001100; }
     .sensor { margin: 8px 0; padding: 8px; border: 1px solid #0f0; background: #000; }
-    .relay-btn { background: #000; color: #0f0; border: 2px solid #0f0; padding: 15px 30px; font-size: 18px; cursor: pointer; margin: 10px; width: 200px; }
-    .relay-btn:hover { background: #0f0; color: #000; }
-    .relay-on { background: #0f0; color: #000; }
+    .btn { background: #000; color: #0f0; border: 2px solid #0f0; padding: 12px 20px; font-size: 16px; cursor: pointer; margin: 5px; font-family: monospace; }
+    .btn:hover { background: #0f0; color: #000; }
+    .btn-active { background: #0f0; color: #000; }
     .env { font-size: 20px; margin: 10px 0; }
+    input[type=number] { background: #000; color: #0f0; border: 2px solid #0f0; padding: 8px; font-family: monospace; width: 80px; font-size: 16px; }
+    .countdown { font-size: 18px; color: #ff0; margin: 10px 0; }
+    .chart-container { position: relative; height: 200px; margin: 15px 0; }
+    canvas { max-height: 200px; }
+    .inline-group { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+    .setting-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 8px 0; }
+    label { color: #0f0; }
   </style>
 </head>
 <body>
   <h1>🌱 ESP32 Plant Monitor</h1>
+  
   <div class="section">
     <h2>Environment</h2>
     <div id="environment">Loading...</div>
   </div>
+  
   <div class="section">
     <h2>Soil Moisture</h2>
     <div id="sensors">Loading...</div>
   </div>
+  
   <div class="section">
-    <h2>Watering Control</h2>
-    <button class="relay-btn" id="relayBtn" onclick="toggleRelay()">Relay: ...</button>
+    <h2>Historical Data</h2>
+    <div class="chart-container"><canvas id="tempChart"></canvas></div>
+    <div class="chart-container"><canvas id="humidityChart"></canvas></div>
+    <div class="chart-container"><canvas id="moistureChart"></canvas></div>
   </div>
+  
+  <div class="section">
+    <h2>Manual Watering</h2>
+    <div class="inline-group">
+      <label>Duration (sec):</label>
+      <input type="number" id="manualDuration" value="20" min="1" max="300">
+      <button class="btn" onclick="startManualWatering()">Start Watering</button>
+    </div>
+    <div id="manualCountdown" class="countdown"></div>
+  </div>
+  
+  <div class="section">
+    <h2>Automatic Watering</h2>
+    <div class="setting-row">
+      <label>Interval (hours):</label>
+      <input type="number" id="autoInterval" value="12" min="1" max="48">
+    </div>
+    <div class="setting-row">
+      <label>Duration (sec):</label>
+      <input type="number" id="autoDuration" value="20" min="1" max="300">
+    </div>
+    <button class="btn" onclick="saveAutoSettings()">Save Settings</button>
+    <div id="autoCountdown" class="countdown"></div>
+  </div>
+  
   <script>
+    let tempChart, humidityChart, moistureChart;
+    
+    function initCharts() {
+      const chartConfig = (label, color) => ({
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            label: label,
+            data: [],
+            borderColor: color,
+            backgroundColor: 'rgba(0, 255, 0, 0.1)',
+            tension: 0.3,
+            pointRadius: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { ticks: { color: '#0f0', maxTicksLimit: 6 }, grid: { color: '#003300' } },
+            y: { ticks: { color: '#0f0' }, grid: { color: '#003300' } }
+          },
+          plugins: {
+            legend: { labels: { color: '#0f0', font: { family: 'monospace' } } }
+          }
+        }
+      });
+      
+      tempChart = new Chart(document.getElementById('tempChart'), chartConfig('Temperature (°C)', '#0f0'));
+      humidityChart = new Chart(document.getElementById('humidityChart'), chartConfig('Humidity (%)', '#0f0'));
+      moistureChart = new Chart(document.getElementById('moistureChart'), chartConfig('Avg Moisture (%)', '#0f0'));
+    }
+    
+    function updateCharts(history) {
+      if (!history || history.length === 0) return;
+      
+      const labels = history.map(d => {
+        const date = new Date(d.timestamp * 1000);
+        return date.getHours() + ':' + String(date.getMinutes()).padStart(2, '0');
+      });
+      
+      tempChart.data.labels = labels;
+      tempChart.data.datasets[0].data = history.map(d => d.temperature);
+      tempChart.update();
+      
+      humidityChart.data.labels = labels;
+      humidityChart.data.datasets[0].data = history.map(d => d.humidity);
+      humidityChart.update();
+      
+      moistureChart.data.labels = labels;
+      moistureChart.data.datasets[0].data = history.map(d => d.avgMoisture);
+      moistureChart.update();
+    }
+    
     function loadData() {
       fetch('/api/sensors')
         .then(res => res.json())
@@ -118,23 +247,73 @@ const char index_html[] PROGMEM = R"rawliteral(
           }
           document.getElementById('sensors').innerHTML = html;
           
-          // Relay
-          var btn = document.getElementById('relayBtn');
-          btn.innerText = 'Relay: ' + data.relay.toUpperCase();
-          btn.className = data.relay === 'on' ? 'relay-btn relay-on' : 'relay-btn';
+          // Manual watering countdown
+          if (data.manualWateringActive) {
+            document.getElementById('manualCountdown').innerHTML = 
+              '⏱️ Watering: ' + data.manualWateringRemaining + 's remaining';
+          } else {
+            document.getElementById('manualCountdown').innerHTML = '';
+          }
+          
+          // Auto watering countdown
+          if (data.nextAutoWaterIn > 0) {
+            const hours = Math.floor(data.nextAutoWaterIn / 3600);
+            const mins = Math.floor((data.nextAutoWaterIn % 3600) / 60);
+            document.getElementById('autoCountdown').innerHTML = 
+              '⏰ Next auto-water in: ' + hours + 'h ' + mins + 'm';
+          } else {
+            document.getElementById('autoCountdown').innerHTML = '⏰ Auto-watering scheduled';
+          }
         });
     }
     
-    function toggleRelay() {
-      fetch('/api/relay', {
+    function loadHistory() {
+      fetch('/api/history')
+        .then(res => res.json())
+        .then(data => {
+          if (data.history) {
+            updateCharts(data.history);
+          }
+        });
+    }
+    
+    function loadAutoSettings() {
+      fetch('/api/auto-water')
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('autoInterval').value = data.intervalHours;
+          document.getElementById('autoDuration').value = data.durationSeconds;
+        });
+    }
+    
+    function startManualWatering() {
+      const duration = parseInt(document.getElementById('manualDuration').value);
+      fetch('/api/manual-water', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({state: 'toggle'})
+        body: JSON.stringify({duration: duration})
       }).then(() => setTimeout(loadData, 200));
     }
     
-    setInterval(loadData, 2000);
+    function saveAutoSettings() {
+      const interval = parseInt(document.getElementById('autoInterval').value);
+      const duration = parseInt(document.getElementById('autoDuration').value);
+      fetch('/api/auto-water', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({intervalHours: interval, durationSeconds: duration})
+      }).then(() => {
+        alert('Settings saved!');
+        loadAutoSettings();
+      });
+    }
+    
+    initCharts();
     loadData();
+    loadHistory();
+    loadAutoSettings();
+    setInterval(loadData, 2000);
+    setInterval(loadHistory, 60000);
   </script>
 </body>
 </html>
@@ -151,7 +330,18 @@ void handleGetSensors();
 void handlePostRelay();
 void handleGetStatus();
 void handleNotFound();
+void handleGetHistory();
+void handleGetAutoWater();
+void handlePostAutoWater();
+void handlePostManualWater();
 String getUptimeString();
+void saveHistoricalData();
+float getAverageMoisture();
+void loadPreferences();
+void saveAutoWaterSettings();
+void checkAutoWatering();
+void checkManualWatering();
+void startWatering(int durationSeconds, bool isManual);
 
 void setup() {
   Serial.begin(115200);
@@ -167,6 +357,9 @@ void setup() {
     pinMode(SENSOR_PINS[i], INPUT);
   }
   
+  // Load preferences
+  loadPreferences();
+  
   dht.begin();
   setupWiFi();
   setupServer();
@@ -175,6 +368,12 @@ void setup() {
   startTime = millis();
   readSensors();
   readDHT();
+  
+  // Initialize auto-watering schedule
+  nextAutoWaterTime = millis() + (autoWaterIntervalHours * 3600UL * 1000UL);
+  Serial.print("Auto-watering scheduled in ");
+  Serial.print(autoWaterIntervalHours);
+  Serial.println(" hours");
 }
 
 void loop() {
@@ -191,6 +390,18 @@ void loop() {
     readDHT();
     lastDHTReadTime = millis();
   }
+  
+  // Check if it's time to save historical data
+  if (millis() - lastHistorySave >= HISTORY_INTERVAL) {
+    saveHistoricalData();
+    lastHistorySave = millis();
+  }
+  
+  // Check automatic watering schedule
+  checkAutoWatering();
+  
+  // Check manual watering countdown
+  checkManualWatering();
 }
 
 void setupWiFi() {
@@ -221,6 +432,10 @@ void setupServer() {
   server.on("/api/sensors", HTTP_GET, handleGetSensors);
   server.on("/api/relay", HTTP_POST, handlePostRelay);
   server.on("/api/status", HTTP_GET, handleGetStatus);
+  server.on("/api/history", HTTP_GET, handleGetHistory);
+  server.on("/api/auto-water", HTTP_GET, handleGetAutoWater);
+  server.on("/api/auto-water", HTTP_POST, handlePostAutoWater);
+  server.on("/api/manual-water", HTTP_POST, handlePostManualWater);
   server.onNotFound(handleNotFound);
 }
 
@@ -297,6 +512,19 @@ void handleGetSensors() {
   doc["dhtConnected"] = dhtConnected;
   doc["relay"] = relayState ? "on" : "off";
   
+  // Manual watering status
+  doc["manualWateringActive"] = manualWateringActive;
+  if (manualWateringActive) {
+    long remaining = (long)(manualWateringEndTime - millis()) / 1000;
+    doc["manualWateringRemaining"] = max(0L, remaining);
+  } else {
+    doc["manualWateringRemaining"] = 0;
+  }
+  
+  // Auto watering status
+  long nextAutoSecs = (long)(nextAutoWaterTime - millis()) / 1000;
+  doc["nextAutoWaterIn"] = max(0L, nextAutoSecs);
+  
   String response;
   serializeJson(doc, response);
   server.send(200, "application/json", response);
@@ -367,4 +595,248 @@ String getUptimeString() {
   if (hours > 0) result += String(hours) + "h ";
   result += String(minutes) + "m " + String(seconds) + "s";
   return result;
+}
+
+void loadPreferences() {
+  preferences.begin("plant-monitor", false);
+  
+  autoWaterIntervalHours = preferences.getInt("autoInterval", 12);
+  autoWaterDurationSeconds = preferences.getInt("autoDuration", 20);
+  
+  // Check if data was stored recently (within 24 hours)
+  unsigned long lastSaveTime = preferences.getULong("lastSaveTime", 0);
+  unsigned long currentTime = millis() / 1000; // Current time in seconds since boot
+  
+  // If last save time exists and was recent, try to restore historical data
+  if (lastSaveTime > 0) {
+    historyCount = preferences.getInt("historyCount", 0);
+    if (historyCount > 0 && historyCount <= MAX_HISTORY) {
+      for (int i = 0; i < historyCount; i++) {
+        String key = "h" + String(i);
+        size_t len = preferences.getBytesLength(key.c_str());
+        if (len == sizeof(HistoricalData)) {
+          preferences.getBytes(key.c_str(), &history[i], sizeof(HistoricalData));
+        }
+      }
+      historyIndex = historyCount % MAX_HISTORY;
+      Serial.print("Restored ");
+      Serial.print(historyCount);
+      Serial.println(" historical data points");
+    }
+  }
+  
+  preferences.end();
+  
+  Serial.print("Loaded auto-water settings: ");
+  Serial.print(autoWaterIntervalHours);
+  Serial.print("h interval, ");
+  Serial.print(autoWaterDurationSeconds);
+  Serial.println("s duration");
+}
+
+void saveAutoWaterSettings() {
+  preferences.begin("plant-monitor", false);
+  preferences.putInt("autoInterval", autoWaterIntervalHours);
+  preferences.putInt("autoDuration", autoWaterDurationSeconds);
+  preferences.end();
+  Serial.println("Auto-water settings saved");
+}
+
+void saveHistoricalData() {
+  if (!dhtConnected) {
+    Serial.println("Skipping historical save - DHT disconnected");
+    return;
+  }
+  
+  float avgMoisture = getAverageMoisture();
+  if (avgMoisture < 0) {
+    Serial.println("Skipping historical save - no moisture sensors connected");
+    return;
+  }
+  
+  // Add new data point
+  history[historyIndex].timestamp = millis() / 1000;
+  history[historyIndex].temperature = temperature;
+  history[historyIndex].humidity = humidity;
+  history[historyIndex].avgMoisture = avgMoisture;
+  
+  historyIndex = (historyIndex + 1) % MAX_HISTORY;
+  if (historyCount < MAX_HISTORY) {
+    historyCount++;
+  }
+  
+  // Save to preferences
+  preferences.begin("plant-monitor", false);
+  preferences.putInt("historyCount", historyCount);
+  preferences.putULong("lastSaveTime", millis() / 1000);
+  
+  // Save recent history points to persistent storage (save all to be safe)
+  for (int i = 0; i < historyCount; i++) {
+    String key = "h" + String(i);
+    preferences.putBytes(key.c_str(), &history[i], sizeof(HistoricalData));
+  }
+  
+  preferences.end();
+  
+  Serial.print("Historical data saved: T=");
+  Serial.print(temperature);
+  Serial.print("C H=");
+  Serial.print(humidity);
+  Serial.print("% M=");
+  Serial.print(avgMoisture);
+  Serial.println("%");
+}
+
+float getAverageMoisture() {
+  float sum = 0;
+  int count = 0;
+  
+  for (int i = 0; i < NUM_SENSORS; i++) {
+    if (sensorConnected[i]) {
+      sum += moisturePercentages[i];
+      count++;
+    }
+  }
+  
+  if (count == 0) return -1;
+  return sum / count;
+}
+
+void handleGetHistory() {
+  JsonDocument doc;
+  JsonArray historyArray = doc.createNestedArray("history");
+  
+  // Return data in chronological order
+  int startIdx = (historyCount < MAX_HISTORY) ? 0 : historyIndex;
+  for (int i = 0; i < historyCount; i++) {
+    int idx = (startIdx + i) % MAX_HISTORY;
+    JsonObject point = historyArray.createNestedObject();
+    point["timestamp"] = history[idx].timestamp;
+    point["temperature"] = round(history[idx].temperature * 10) / 10.0;
+    point["humidity"] = round(history[idx].humidity * 10) / 10.0;
+    point["avgMoisture"] = round(history[idx].avgMoisture * 10) / 10.0;
+  }
+  
+  String response;
+  serializeJson(doc, response);
+  server.send(200, "application/json", response);
+}
+
+void handleGetAutoWater() {
+  JsonDocument doc;
+  doc["intervalHours"] = autoWaterIntervalHours;
+  doc["durationSeconds"] = autoWaterDurationSeconds;
+  
+  String response;
+  serializeJson(doc, response);
+  server.send(200, "application/json", response);
+}
+
+void handlePostAutoWater() {
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, server.arg("plain"));
+  
+  if (error) {
+    server.send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+    return;
+  }
+  
+  if (doc.containsKey("intervalHours")) {
+    autoWaterIntervalHours = doc["intervalHours"];
+    autoWaterIntervalHours = constrain(autoWaterIntervalHours, 1, 48);
+  }
+  
+  if (doc.containsKey("durationSeconds")) {
+    autoWaterDurationSeconds = doc["durationSeconds"];
+    autoWaterDurationSeconds = constrain(autoWaterDurationSeconds, 1, 300);
+  }
+  
+  saveAutoWaterSettings();
+  
+  // Reschedule next auto-water
+  nextAutoWaterTime = millis() + (autoWaterIntervalHours * 3600UL * 1000UL);
+  
+  JsonDocument response;
+  response["success"] = true;
+  response["intervalHours"] = autoWaterIntervalHours;
+  response["durationSeconds"] = autoWaterDurationSeconds;
+  
+  String responseStr;
+  serializeJson(response, responseStr);
+  server.send(200, "application/json", responseStr);
+}
+
+void handlePostManualWater() {
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, server.arg("plain"));
+  
+  if (error) {
+    server.send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+    return;
+  }
+  
+  int duration = doc["duration"] | 20;
+  duration = constrain(duration, 1, 300);
+  
+  startWatering(duration, true);
+  
+  JsonDocument response;
+  response["success"] = true;
+  response["duration"] = duration;
+  
+  String responseStr;
+  serializeJson(response, responseStr);
+  server.send(200, "application/json", responseStr);
+}
+
+void startWatering(int durationSeconds, bool isManual) {
+  if (isManual) {
+    manualWateringActive = true;
+    manualWateringDuration = durationSeconds;
+    manualWateringEndTime = millis() + (durationSeconds * 1000UL);
+    
+    Serial.print("Starting manual watering for ");
+    Serial.print(durationSeconds);
+    Serial.println(" seconds");
+  } else {
+    Serial.print("Starting automatic watering for ");
+    Serial.print(durationSeconds);
+    Serial.println(" seconds");
+    
+    // Schedule next auto-water
+    lastAutoWaterTime = millis();
+    nextAutoWaterTime = millis() + (autoWaterIntervalHours * 3600UL * 1000UL);
+    
+    // Use the manual watering mechanism for timing
+    manualWateringActive = true;
+    manualWateringDuration = durationSeconds;
+    manualWateringEndTime = millis() + (durationSeconds * 1000UL);
+  }
+  
+  // Turn on relay
+  relayState = true;
+  digitalWrite(RELAY_PIN, HIGH);
+}
+
+void checkAutoWatering() {
+  // Don't start auto-watering if manual watering is active
+  if (manualWateringActive) return;
+  
+  // Check if it's time for auto-watering
+  if (millis() >= nextAutoWaterTime) {
+    startWatering(autoWaterDurationSeconds, false);
+  }
+}
+
+void checkManualWatering() {
+  if (manualWateringActive) {
+    if (millis() >= manualWateringEndTime) {
+      // Turn off relay
+      relayState = false;
+      digitalWrite(RELAY_PIN, LOW);
+      manualWateringActive = false;
+      
+      Serial.println("Watering completed");
+    }
+  }
 }
