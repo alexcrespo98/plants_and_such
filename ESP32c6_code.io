@@ -67,12 +67,22 @@ struct HistoricalData {
   float avgMoisture;
 };
 
-const int MAX_HISTORY = 48; // 48 points = 24 hours at 30-min intervals
-HistoricalData history[MAX_HISTORY];
-int historyCount = 0;
-int historyIndex = 0;
-unsigned long lastHistorySave = 0;
-const unsigned long HISTORY_INTERVAL = 30UL * 60UL * 1000UL; // 30 minutes
+// Two-tier historical data storage
+// Tier 1: Detailed - 30-minute intervals for 7 days (336 data points)
+const int MAX_DETAILED_HISTORY = 336; // 7 days * 48 points/day
+HistoricalData detailedHistory[MAX_DETAILED_HISTORY];
+int detailedHistoryCount = 0;
+int detailedHistoryIndex = 0;
+unsigned long lastDetailedSave = 0;
+const unsigned long DETAILED_INTERVAL = 30UL * 60UL * 1000UL; // 30 minutes
+
+// Tier 2: Compressed - 2-hour intervals for 30 days (360 data points)
+const int MAX_COMPRESSED_HISTORY = 360; // 30 days * 12 points/day
+HistoricalData compressedHistory[MAX_COMPRESSED_HISTORY];
+int compressedHistoryCount = 0;
+int compressedHistoryIndex = 0;
+unsigned long lastCompressedSave = 0;
+const unsigned long COMPRESSED_INTERVAL = 2UL * 60UL * 60UL * 1000UL; // 2 hours
 
 // Automatic watering configuration
 int autoWaterIntervalHours = 12;
@@ -138,6 +148,11 @@ const char index_html[] PROGMEM = R"rawliteral(
   
   <div class="section">
     <h2>Historical Data</h2>
+    <div class="inline-group">
+      <button class="btn" id="btn24h" onclick="setTimeRange('24h')">24 Hours</button>
+      <button class="btn" id="btn7d" onclick="setTimeRange('7d')">7 Days</button>
+      <button class="btn" id="btn30d" onclick="setTimeRange('30d')">30 Days</button>
+    </div>
     <div class="chart-container"><canvas id="tempChart"></canvas></div>
     <div class="chart-container"><canvas id="humidityChart"></canvas></div>
     <div class="chart-container"><canvas id="moistureChart"></canvas></div>
@@ -169,6 +184,8 @@ const char index_html[] PROGMEM = R"rawliteral(
   
   <script>
     let tempChart, humidityChart, moistureChart;
+    let currentTimeRange = '24h';
+    let historyData = { detailed: [], compressed: [] };
     
     function initCharts() {
       const chartConfig = (label, color) => ({
@@ -181,14 +198,14 @@ const char index_html[] PROGMEM = R"rawliteral(
             borderColor: color,
             backgroundColor: 'rgba(0, 255, 0, 0.1)',
             tension: 0.3,
-            pointRadius: 3
+            pointRadius: 2
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           scales: {
-            x: { ticks: { color: '#0f0', maxTicksLimit: 6 }, grid: { color: '#003300' } },
+            x: { ticks: { color: '#0f0', maxTicksLimit: 8 }, grid: { color: '#003300' } },
             y: { ticks: { color: '#0f0' }, grid: { color: '#003300' } }
           },
           plugins: {
@@ -202,24 +219,54 @@ const char index_html[] PROGMEM = R"rawliteral(
       moistureChart = new Chart(document.getElementById('moistureChart'), chartConfig('Avg Moisture (%)', '#0f0'));
     }
     
-    function updateCharts(history) {
-      if (!history || history.length === 0) return;
+    function setTimeRange(range) {
+      currentTimeRange = range;
+      document.getElementById('btn24h').className = range === '24h' ? 'btn btn-active' : 'btn';
+      document.getElementById('btn7d').className = range === '7d' ? 'btn btn-active' : 'btn';
+      document.getElementById('btn30d').className = range === '30d' ? 'btn btn-active' : 'btn';
+      updateChartsForRange();
+    }
+    
+    function updateChartsForRange() {
+      let dataToShow = [];
+      const now = Date.now() / 1000;
       
-      const labels = history.map(d => {
+      if (currentTimeRange === '24h') {
+        // Show last 24 hours from detailed data (30-min intervals)
+        const cutoff = now - (24 * 3600);
+        dataToShow = historyData.detailed.filter(d => d.timestamp >= cutoff);
+      } else if (currentTimeRange === '7d') {
+        // Show last 7 days from detailed data
+        const cutoff = now - (7 * 24 * 3600);
+        dataToShow = historyData.detailed.filter(d => d.timestamp >= cutoff);
+      } else if (currentTimeRange === '30d') {
+        // Show last 30 days from compressed data (2-hour intervals)
+        const cutoff = now - (30 * 24 * 3600);
+        dataToShow = historyData.compressed.filter(d => d.timestamp >= cutoff);
+      }
+      
+      if (dataToShow.length === 0) return;
+      
+      // Format labels based on time range
+      const labels = dataToShow.map(d => {
         const date = new Date(d.timestamp * 1000);
-        return date.getHours() + ':' + String(date.getMinutes()).padStart(2, '0');
+        if (currentTimeRange === '24h') {
+          return date.getHours() + ':' + String(date.getMinutes()).padStart(2, '0');
+        } else {
+          return (date.getMonth() + 1) + '/' + date.getDate() + ' ' + date.getHours() + ':00';
+        }
       });
       
       tempChart.data.labels = labels;
-      tempChart.data.datasets[0].data = history.map(d => d.temperature);
+      tempChart.data.datasets[0].data = dataToShow.map(d => d.temperature);
       tempChart.update();
       
       humidityChart.data.labels = labels;
-      humidityChart.data.datasets[0].data = history.map(d => d.humidity);
+      humidityChart.data.datasets[0].data = dataToShow.map(d => d.humidity);
       humidityChart.update();
       
       moistureChart.data.labels = labels;
-      moistureChart.data.datasets[0].data = history.map(d => d.avgMoisture);
+      moistureChart.data.datasets[0].data = dataToShow.map(d => d.avgMoisture);
       moistureChart.update();
     }
     
@@ -271,9 +318,13 @@ const char index_html[] PROGMEM = R"rawliteral(
       fetch('/api/history')
         .then(res => res.json())
         .then(data => {
-          if (data.history) {
-            updateCharts(data.history);
+          if (data.detailed) {
+            historyData.detailed = data.detailed;
           }
+          if (data.compressed) {
+            historyData.compressed = data.compressed;
+          }
+          updateChartsForRange();
         });
     }
     
@@ -309,6 +360,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     }
     
     initCharts();
+    setTimeRange('24h');
     loadData();
     loadHistory();
     loadAutoSettings();
@@ -335,7 +387,8 @@ void handleGetAutoWater();
 void handlePostAutoWater();
 void handlePostManualWater();
 String getUptimeString();
-void saveHistoricalData();
+void saveDetailedHistoricalData();
+void saveCompressedHistoricalData();
 float getAverageMoisture();
 void loadPreferences();
 void saveAutoWaterSettings();
@@ -391,10 +444,16 @@ void loop() {
     lastDHTReadTime = millis();
   }
   
-  // Check if it's time to save historical data
-  if (millis() - lastHistorySave >= HISTORY_INTERVAL) {
-    saveHistoricalData();
-    lastHistorySave = millis();
+  // Check if it's time to save detailed historical data
+  if (millis() - lastDetailedSave >= DETAILED_INTERVAL) {
+    saveDetailedHistoricalData();
+    lastDetailedSave = millis();
+  }
+  
+  // Check if it's time to save compressed historical data
+  if (millis() - lastCompressedSave >= COMPRESSED_INTERVAL) {
+    saveCompressedHistoricalData();
+    lastCompressedSave = millis();
   }
   
   // Check automatic watering schedule
@@ -603,25 +662,52 @@ void loadPreferences() {
   autoWaterIntervalHours = preferences.getInt("autoInterval", 12);
   autoWaterDurationSeconds = preferences.getInt("autoDuration", 20);
   
-  // Check if data was stored recently (within 24 hours)
+  // Check if data was stored recently
   unsigned long lastSaveTime = preferences.getULong("lastSaveTime", 0);
-  unsigned long currentTime = millis() / 1000; // Current time in seconds since boot
   
-  // If last save time exists and was recent, try to restore historical data
+  // If last save time exists, try to restore historical data
   if (lastSaveTime > 0) {
-    historyCount = preferences.getInt("historyCount", 0);
-    if (historyCount > 0 && historyCount <= MAX_HISTORY) {
-      for (int i = 0; i < historyCount; i++) {
-        String key = "h" + String(i);
+    // Restore detailed history
+    detailedHistoryCount = preferences.getInt("detailedCount", 0);
+    if (detailedHistoryCount > 0 && detailedHistoryCount <= MAX_DETAILED_HISTORY) {
+      // Only restore a subset to avoid long boot times
+      int restoreCount = min(detailedHistoryCount, 100); // Restore last 100 points
+      int startOffset = max(0, detailedHistoryCount - restoreCount);
+      
+      for (int i = 0; i < restoreCount; i++) {
+        String key = "d" + String(startOffset + i);
         size_t len = preferences.getBytesLength(key.c_str());
         if (len == sizeof(HistoricalData)) {
-          preferences.getBytes(key.c_str(), &history[i], sizeof(HistoricalData));
+          preferences.getBytes(key.c_str(), &detailedHistory[i], sizeof(HistoricalData));
         }
       }
-      historyIndex = historyCount % MAX_HISTORY;
+      detailedHistoryCount = restoreCount;
+      detailedHistoryIndex = restoreCount % MAX_DETAILED_HISTORY;
+      
       Serial.print("Restored ");
-      Serial.print(historyCount);
-      Serial.println(" historical data points");
+      Serial.print(detailedHistoryCount);
+      Serial.println(" detailed data points");
+    }
+    
+    // Restore compressed history
+    compressedHistoryCount = preferences.getInt("compressedCount", 0);
+    if (compressedHistoryCount > 0 && compressedHistoryCount <= MAX_COMPRESSED_HISTORY) {
+      int restoreCount = min(compressedHistoryCount, 50); // Restore last 50 points
+      int startOffset = max(0, compressedHistoryCount - restoreCount);
+      
+      for (int i = 0; i < restoreCount; i++) {
+        String key = "c" + String(startOffset + i);
+        size_t len = preferences.getBytesLength(key.c_str());
+        if (len == sizeof(HistoricalData)) {
+          preferences.getBytes(key.c_str(), &compressedHistory[i], sizeof(HistoricalData));
+        }
+      }
+      compressedHistoryCount = restoreCount;
+      compressedHistoryIndex = restoreCount % MAX_COMPRESSED_HISTORY;
+      
+      Serial.print("Restored ");
+      Serial.print(compressedHistoryCount);
+      Serial.println(" compressed data points");
     }
   }
   
@@ -642,43 +728,85 @@ void saveAutoWaterSettings() {
   Serial.println("Auto-water settings saved");
 }
 
-void saveHistoricalData() {
+void saveDetailedHistoricalData() {
   if (!dhtConnected) {
-    Serial.println("Skipping historical save - DHT disconnected");
+    Serial.println("Skipping detailed save - DHT disconnected");
     return;
   }
   
   float avgMoisture = getAverageMoisture();
   if (avgMoisture < 0) {
-    Serial.println("Skipping historical save - no moisture sensors connected");
+    Serial.println("Skipping detailed save - no moisture sensors connected");
     return;
   }
   
-  // Add new data point
-  history[historyIndex].timestamp = millis() / 1000;
-  history[historyIndex].temperature = temperature;
-  history[historyIndex].humidity = humidity;
-  history[historyIndex].avgMoisture = avgMoisture;
+  // Add new data point to detailed history
+  detailedHistory[detailedHistoryIndex].timestamp = millis() / 1000;
+  detailedHistory[detailedHistoryIndex].temperature = temperature;
+  detailedHistory[detailedHistoryIndex].humidity = humidity;
+  detailedHistory[detailedHistoryIndex].avgMoisture = avgMoisture;
   
-  historyIndex = (historyIndex + 1) % MAX_HISTORY;
-  if (historyCount < MAX_HISTORY) {
-    historyCount++;
+  detailedHistoryIndex = (detailedHistoryIndex + 1) % MAX_DETAILED_HISTORY;
+  if (detailedHistoryCount < MAX_DETAILED_HISTORY) {
+    detailedHistoryCount++;
+  }
+  
+  // Save to preferences (only save recent subset to avoid excessive writes)
+  preferences.begin("plant-monitor", false);
+  preferences.putInt("detailedCount", detailedHistoryCount);
+  preferences.putULong("lastSaveTime", millis() / 1000);
+  
+  // Save only the most recent data point to reduce wear on flash
+  int actualIndex = (detailedHistoryIndex - 1 + MAX_DETAILED_HISTORY) % MAX_DETAILED_HISTORY;
+  String key = "d" + String(detailedHistoryCount - 1);
+  preferences.putBytes(key.c_str(), &detailedHistory[actualIndex], sizeof(HistoricalData));
+  
+  preferences.end();
+  
+  Serial.print("Detailed data saved: T=");
+  Serial.print(temperature);
+  Serial.print("C H=");
+  Serial.print(humidity);
+  Serial.print("% M=");
+  Serial.print(avgMoisture);
+  Serial.println("%");
+}
+
+void saveCompressedHistoricalData() {
+  if (!dhtConnected) {
+    Serial.println("Skipping compressed save - DHT disconnected");
+    return;
+  }
+  
+  float avgMoisture = getAverageMoisture();
+  if (avgMoisture < 0) {
+    Serial.println("Skipping compressed save - no moisture sensors connected");
+    return;
+  }
+  
+  // Add new data point to compressed history
+  compressedHistory[compressedHistoryIndex].timestamp = millis() / 1000;
+  compressedHistory[compressedHistoryIndex].temperature = temperature;
+  compressedHistory[compressedHistoryIndex].humidity = humidity;
+  compressedHistory[compressedHistoryIndex].avgMoisture = avgMoisture;
+  
+  compressedHistoryIndex = (compressedHistoryIndex + 1) % MAX_COMPRESSED_HISTORY;
+  if (compressedHistoryCount < MAX_COMPRESSED_HISTORY) {
+    compressedHistoryCount++;
   }
   
   // Save to preferences
   preferences.begin("plant-monitor", false);
-  preferences.putInt("historyCount", historyCount);
-  preferences.putULong("lastSaveTime", millis() / 1000);
+  preferences.putInt("compressedCount", compressedHistoryCount);
   
-  // Save recent history points to persistent storage (save all to be safe)
-  for (int i = 0; i < historyCount; i++) {
-    String key = "h" + String(i);
-    preferences.putBytes(key.c_str(), &history[i], sizeof(HistoricalData));
-  }
+  // Save only the most recent data point
+  int actualIndex = (compressedHistoryIndex - 1 + MAX_COMPRESSED_HISTORY) % MAX_COMPRESSED_HISTORY;
+  String key = "c" + String(compressedHistoryCount - 1);
+  preferences.putBytes(key.c_str(), &compressedHistory[actualIndex], sizeof(HistoricalData));
   
   preferences.end();
   
-  Serial.print("Historical data saved: T=");
+  Serial.print("Compressed data saved (2h interval): T=");
   Serial.print(temperature);
   Serial.print("C H=");
   Serial.print(humidity);
@@ -704,18 +832,33 @@ float getAverageMoisture() {
 
 void handleGetHistory() {
   JsonDocument doc;
-  JsonArray historyArray = doc.createNestedArray("history");
   
-  // Return data in chronological order
-  int startIdx = (historyCount < MAX_HISTORY) ? 0 : historyIndex;
-  for (int i = 0; i < historyCount; i++) {
-    int idx = (startIdx + i) % MAX_HISTORY;
-    JsonObject point = historyArray.createNestedObject();
-    point["timestamp"] = history[idx].timestamp;
-    point["temperature"] = round(history[idx].temperature * 10) / 10.0;
-    point["humidity"] = round(history[idx].humidity * 10) / 10.0;
-    point["avgMoisture"] = round(history[idx].avgMoisture * 10) / 10.0;
+  // Add detailed history (30-min intervals, up to 7 days)
+  JsonArray detailedArray = doc.createNestedArray("detailed");
+  int detailedStartIdx = (detailedHistoryCount < MAX_DETAILED_HISTORY) ? 0 : detailedHistoryIndex;
+  for (int i = 0; i < detailedHistoryCount; i++) {
+    int idx = (detailedStartIdx + i) % MAX_DETAILED_HISTORY;
+    JsonObject point = detailedArray.createNestedObject();
+    point["timestamp"] = detailedHistory[idx].timestamp;
+    point["temperature"] = round(detailedHistory[idx].temperature * 10) / 10.0;
+    point["humidity"] = round(detailedHistory[idx].humidity * 10) / 10.0;
+    point["avgMoisture"] = round(detailedHistory[idx].avgMoisture * 10) / 10.0;
   }
+  
+  // Add compressed history (2-hour intervals, up to 30 days)
+  JsonArray compressedArray = doc.createNestedArray("compressed");
+  int compressedStartIdx = (compressedHistoryCount < MAX_COMPRESSED_HISTORY) ? 0 : compressedHistoryIndex;
+  for (int i = 0; i < compressedHistoryCount; i++) {
+    int idx = (compressedStartIdx + i) % MAX_COMPRESSED_HISTORY;
+    JsonObject point = compressedArray.createNestedObject();
+    point["timestamp"] = compressedHistory[idx].timestamp;
+    point["temperature"] = round(compressedHistory[idx].temperature * 10) / 10.0;
+    point["humidity"] = round(compressedHistory[idx].humidity * 10) / 10.0;
+    point["avgMoisture"] = round(compressedHistory[idx].avgMoisture * 10) / 10.0;
+  }
+  
+  doc["detailedCount"] = detailedHistoryCount;
+  doc["compressedCount"] = compressedHistoryCount;
   
   String response;
   serializeJson(doc, response);
