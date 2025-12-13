@@ -157,6 +157,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       <button class="btn" id="btn7d" onclick="setTimeRange('7d')">7 Days</button>
       <button class="btn" id="btn30d" onclick="setTimeRange('30d')">30 Days</button>
     </div>
+    <div id="historyStatus" style="color: #ff0; margin: 10px 0;"></div>
     <div class="chart-container"><canvas id="tempChart"></canvas></div>
     <div class="chart-container"><canvas id="humidityChart"></canvas></div>
     <div class="chart-container"><canvas id="moistureChart"></canvas></div>
@@ -249,7 +250,32 @@ const char index_html[] PROGMEM = R"rawliteral(
         dataToShow = historyData.compressed.filter(d => d.timestamp >= cutoff);
       }
       
-      if (dataToShow.length === 0) return;
+      // Handle empty data case
+      if (dataToShow.length === 0) {
+        const statusMsg = document.getElementById('historyStatus');
+        if (historyData.detailed.length === 0 && historyData.compressed.length === 0) {
+          statusMsg.innerHTML = '📊 No historical data yet. Data collection starts automatically every 30 minutes.';
+        } else {
+          statusMsg.innerHTML = '📊 No data for selected time range. Try a different view.';
+        }
+        
+        // Clear charts but keep them visible
+        tempChart.data.labels = [];
+        tempChart.data.datasets[0].data = [];
+        tempChart.update();
+        
+        humidityChart.data.labels = [];
+        humidityChart.data.datasets[0].data = [];
+        humidityChart.update();
+        
+        moistureChart.data.labels = [];
+        moistureChart.data.datasets[0].data = [];
+        moistureChart.update();
+        return;
+      }
+      
+      // Clear status message when data is available
+      document.getElementById('historyStatus').innerHTML = '';
       
       // Format labels based on time range
       const labels = dataToShow.map(d => {
@@ -324,10 +350,20 @@ const char index_html[] PROGMEM = R"rawliteral(
         .then(data => {
           if (data.detailed) {
             historyData.detailed = data.detailed;
+          } else {
+            historyData.detailed = [];
           }
           if (data.compressed) {
             historyData.compressed = data.compressed;
+          } else {
+            historyData.compressed = [];
           }
+          updateChartsForRange();
+        })
+        .catch(err => {
+          console.error('Error loading history:', err);
+          historyData.detailed = [];
+          historyData.compressed = [];
           updateChartsForRange();
         });
     }
