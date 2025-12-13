@@ -491,9 +491,14 @@ void setup() {
   }
   Serial.println("[INIT] Moisture sensors initialized");
   
-  // Load preferences
+  // Load preferences (with timeout protection)
   Serial.println("\n[INIT] Loading preferences from flash...");
+  unsigned long prefStart = millis();
   loadPreferences();
+  unsigned long prefTime = millis() - prefStart;
+  Serial.print("[INIT] Preferences loaded in ");
+  Serial.print(prefTime);
+  Serial.println(" ms");
   
   Serial.println("\n[INIT] Starting DHT sensor...");
   dht.begin();
@@ -504,8 +509,14 @@ void setup() {
   Serial.println("\n[INIT] Setting up web server...");
   setupServer();
   server.begin();
-  Serial.print("[INIT] Web server started at http://");
-  Serial.println(WiFi.localIP());
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.print("[INIT] Web server started at http://");
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.println("[INIT] Web server started (WiFi NOT connected)");
+    Serial.println("[INIT] WARNING: System will work but web UI unavailable until WiFi connects");
+  }
   
   startTime = millis();
   
@@ -563,24 +574,70 @@ void loop() {
 }
 
 void setupWiFi() {
-  Serial.print("Connecting to: ");
+  Serial.print("  SSID: ");
   Serial.println(ssid);
+  Serial.print("  Password length: ");
+  Serial.println(strlen(password));
+  
+  Serial.println("  Setting WiFi mode to STA...");
   WiFi.mode(WIFI_STA);
+  delay(100);
+  
+  Serial.println("  Starting WiFi connection...");
   WiFi.begin(ssid, password);
   
   int attempts = 0;
+  Serial.print("  Connecting");
   while (WiFi.status() != WL_CONNECTED && attempts < 40) {
     delay(500);
     Serial.print(".");
     attempts++;
+    
+    // Print status every 10 attempts
+    if (attempts % 10 == 0) {
+      Serial.println();
+      Serial.print("  Status: ");
+      Serial.print(WiFi.status());
+      Serial.print(" (");
+      switch(WiFi.status()) {
+        case WL_IDLE_STATUS: Serial.print("IDLE"); break;
+        case WL_NO_SSID_AVAIL: Serial.print("NO SSID"); break;
+        case WL_SCAN_COMPLETED: Serial.print("SCAN DONE"); break;
+        case WL_CONNECTED: Serial.print("CONNECTED"); break;
+        case WL_CONNECT_FAILED: Serial.print("FAILED"); break;
+        case WL_CONNECTION_LOST: Serial.print("LOST"); break;
+        case WL_DISCONNECTED: Serial.print("DISCONNECTED"); break;
+        default: Serial.print("UNKNOWN"); break;
+      }
+      Serial.print(") Attempt ");
+      Serial.print(attempts);
+      Serial.print("/40");
+      Serial.println();
+      Serial.print("  ");
+    }
   }
   Serial.println();
   
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.print("✓ Connected! IP: ");
+    Serial.println("  ✓ Connected!");
+    Serial.print("  IP Address: ");
     Serial.println(WiFi.localIP());
+    Serial.print("  Gateway: ");
+    Serial.println(WiFi.gatewayIP());
+    Serial.print("  Subnet: ");
+    Serial.println(WiFi.subnetMask());
+    Serial.print("  RSSI: ");
+    Serial.print(WiFi.RSSI());
+    Serial.println(" dBm");
   } else {
-    Serial.println("✗ Connection failed.");
+    Serial.println("  ✗ Connection FAILED!");
+    Serial.print("  Final status: ");
+    Serial.println(WiFi.status());
+    Serial.println("  Check:");
+    Serial.println("    1. SSID is correct");
+    Serial.println("    2. Password is correct");
+    Serial.println("    3. Router is powered on");
+    Serial.println("    4. ESP32 is in range");
   }
 }
 
@@ -786,22 +843,37 @@ String getUptimeString() {
 }
 
 void loadPreferences() {
-  preferences.begin("plant-monitor", false);
+  Serial.println("  Opening preferences namespace...");
+  if (!preferences.begin("plant-monitor", false)) {
+    Serial.println("  WARNING: Failed to open preferences!");
+    return;
+  }
   
   autoWaterIntervalHours = preferences.getInt("autoInterval", 12);
   autoWaterDurationSeconds = preferences.getInt("autoDuration", 20);
+  Serial.print("  Auto-water settings: ");
+  Serial.print(autoWaterIntervalHours);
+  Serial.print("h / ");
+  Serial.print(autoWaterDurationSeconds);
+  Serial.println("s");
   
   // Check if data was stored recently
   unsigned long lastSaveTime = preferences.getULong("lastSaveTime", 0);
   
   // If last save time exists, try to restore historical data
   if (lastSaveTime > 0) {
+    Serial.println("  Previous data found, restoring...");
+    
     // Restore detailed history
     detailedHistoryCount = preferences.getInt("detailedCount", 0);
     if (detailedHistoryCount > 0 && detailedHistoryCount <= MAX_DETAILED_HISTORY) {
       // Only restore a subset to avoid long boot times
       int restoreCount = min(detailedHistoryCount, MAX_RESTORE_DETAILED_POINTS);
       int startOffset = max(0, detailedHistoryCount - restoreCount);
+      
+      Serial.print("  Restoring ");
+      Serial.print(restoreCount);
+      Serial.print(" detailed points...");
       
       for (int i = 0; i < restoreCount; i++) {
         String key = "d" + String(startOffset + i);
@@ -812,10 +884,7 @@ void loadPreferences() {
       }
       detailedHistoryCount = restoreCount;
       detailedHistoryIndex = restoreCount % MAX_DETAILED_HISTORY;
-      
-      Serial.print("Restored ");
-      Serial.print(detailedHistoryCount);
-      Serial.println(" detailed data points");
+      Serial.println(" done");
     }
     
     // Restore compressed history
@@ -823,6 +892,10 @@ void loadPreferences() {
     if (compressedHistoryCount > 0 && compressedHistoryCount <= MAX_COMPRESSED_HISTORY) {
       int restoreCount = min(compressedHistoryCount, MAX_RESTORE_COMPRESSED_POINTS);
       int startOffset = max(0, compressedHistoryCount - restoreCount);
+      
+      Serial.print("  Restoring ");
+      Serial.print(restoreCount);
+      Serial.print(" compressed points...");
       
       for (int i = 0; i < restoreCount; i++) {
         String key = "c" + String(startOffset + i);
@@ -833,20 +906,13 @@ void loadPreferences() {
       }
       compressedHistoryCount = restoreCount;
       compressedHistoryIndex = restoreCount % MAX_COMPRESSED_HISTORY;
-      
-      Serial.print("Restored ");
-      Serial.print(compressedHistoryCount);
-      Serial.println(" compressed data points");
+      Serial.println(" done");
     }
+  } else {
+    Serial.println("  No previous data found (fresh start)");
   }
   
   preferences.end();
-  
-  Serial.print("Loaded auto-water settings: ");
-  Serial.print(autoWaterIntervalHours);
-  Serial.print("h interval, ");
-  Serial.print(autoWaterDurationSeconds);
-  Serial.println("s duration");
 }
 
 void saveAutoWaterSettings() {
