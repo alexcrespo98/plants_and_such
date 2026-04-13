@@ -1,0 +1,12 @@
+[Unit]
+Description=Brick: set default Focus state (FocusOFF) on boot
+After=network-online.target pihole-FTL.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/crespo/Desktop/brick/scripts/focus-off.sh
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target

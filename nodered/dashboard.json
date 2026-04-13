@@ -1587,5 +1587,303 @@
     "wires": [
       []
     ]
+  },
+  {
+    "id": "ui-tab-brick",
+    "type": "ui_tab",
+    "z": "",
+    "name": "brick",
+    "icon": "block",
+    "disabled": false,
+    "hidden": false
+  },
+  {
+    "id": "grp-brick",
+    "type": "ui_group",
+    "z": "",
+    "name": "focus mode",
+    "tab": "ui-tab-brick",
+    "order": 1,
+    "disp": true,
+    "width": "6",
+    "collapse": false,
+    "className": ""
+  },
+  {
+    "id": "txt-brick-status",
+    "type": "ui_text",
+    "z": "tab-main",
+    "group": "grp-brick",
+    "order": 1,
+    "width": 0,
+    "height": 0,
+    "name": "brick status",
+    "label": "focus",
+    "format": "{{msg.payload}}",
+    "layout": "row-spread",
+    "className": "",
+    "x": 600,
+    "y": 1720,
+    "wires": []
+  },
+  {
+    "id": "txt-brick-time",
+    "type": "ui_text",
+    "z": "tab-main",
+    "group": "grp-brick",
+    "order": 2,
+    "width": 0,
+    "height": 0,
+    "name": "brick updated",
+    "label": "updated",
+    "format": "{{msg.payload}}",
+    "layout": "row-spread",
+    "className": "",
+    "x": 600,
+    "y": 1760,
+    "wires": []
+  },
+  {
+    "id": "btn-brick-toggle",
+    "type": "ui_button",
+    "z": "tab-main",
+    "name": "toggle focus",
+    "group": "grp-brick",
+    "order": 3,
+    "width": 0,
+    "height": 0,
+    "passthru": false,
+    "label": "toggle",
+    "tooltip": "flip focus on / off",
+    "color": "#0a0a0a",
+    "bgcolor": "#00ff41",
+    "className": "",
+    "icon": "",
+    "payload": "",
+    "payloadType": "str",
+    "topic": "toggle",
+    "topicType": "str",
+    "x": 160,
+    "y": 1800,
+    "wires": [
+      [
+        "fn-brick-toggle"
+      ]
+    ]
+  },
+  {
+    "id": "btn-brick-on",
+    "type": "ui_button",
+    "z": "tab-main",
+    "name": "brick on",
+    "group": "grp-brick",
+    "order": 4,
+    "width": 0,
+    "height": 0,
+    "passthru": false,
+    "label": "on",
+    "tooltip": "enable focus mode",
+    "color": "#00ff41",
+    "bgcolor": "#0a0a0a",
+    "className": "",
+    "icon": "",
+    "payload": "",
+    "payloadType": "str",
+    "topic": "on",
+    "topicType": "str",
+    "x": 160,
+    "y": 1840,
+    "wires": [
+      [
+        "fn-brick-on"
+      ]
+    ]
+  },
+  {
+    "id": "btn-brick-off",
+    "type": "ui_button",
+    "z": "tab-main",
+    "name": "brick off",
+    "group": "grp-brick",
+    "order": 5,
+    "width": 0,
+    "height": 0,
+    "passthru": false,
+    "label": "off",
+    "tooltip": "disable focus mode",
+    "color": "#00ff41",
+    "bgcolor": "#0a0a0a",
+    "className": "",
+    "icon": "",
+    "payload": "",
+    "payloadType": "str",
+    "topic": "off",
+    "topicType": "str",
+    "x": 160,
+    "y": 1880,
+    "wires": [
+      [
+        "fn-brick-off"
+      ]
+    ]
+  },
+  {
+    "id": "fn-brick-toggle",
+    "type": "function",
+    "z": "tab-main",
+    "name": "brick toggle req",
+    "func": "msg.url = 'http://192.168.0.32:5123/toggle';\nmsg.method = 'GET';\nmsg.payload = '';\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 370,
+    "y": 1800,
+    "wires": [
+      [
+        "http-brick-cmd",
+        "fn-brick-parse"
+      ]
+    ]
+  },
+  {
+    "id": "fn-brick-on",
+    "type": "function",
+    "z": "tab-main",
+    "name": "brick on req",
+    "func": "msg.url = 'http://192.168.0.32:5123/on';\nmsg.method = 'GET';\nmsg.payload = '';\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 350,
+    "y": 1840,
+    "wires": [
+      [
+        "http-brick-cmd",
+        "fn-brick-parse"
+      ]
+    ]
+  },
+  {
+    "id": "fn-brick-off",
+    "type": "function",
+    "z": "tab-main",
+    "name": "brick off req",
+    "func": "msg.url = 'http://192.168.0.32:5123/off';\nmsg.method = 'GET';\nmsg.payload = '';\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 350,
+    "y": 1880,
+    "wires": [
+      [
+        "http-brick-cmd",
+        "fn-brick-parse"
+      ]
+    ]
+  },
+  {
+    "id": "http-brick-cmd",
+    "type": "http request",
+    "z": "tab-main",
+    "name": "brick cmd",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 570,
+    "y": 1840,
+    "wires": [
+      [
+        "fn-brick-parse"
+      ]
+    ]
+  },
+  {
+    "id": "fn-brick-parse",
+    "type": "function",
+    "z": "tab-main",
+    "name": "parse brick state",
+    "func": "var data = msg.payload;\nif (typeof data === 'string') {\n    try { data = JSON.parse(data); } catch(e) { return null; }\n}\nvar focusVal = data.focus;\nvar label = (focusVal === true || focusVal === 'true') ? 'ON \u2014 blocking' : 'OFF \u2014 normal';\nvar timeVal = data.updated_at || '';\nnode.send([\n    {payload: label},\n    {payload: timeVal}\n]);\nreturn null;",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 780,
+    "y": 1760,
+    "wires": [
+      [
+        "txt-brick-status"
+      ],
+      [
+        "txt-brick-time"
+      ]
+    ]
+  },
+  {
+    "id": "inj-brick-poll",
+    "type": "inject",
+    "z": "tab-main",
+    "name": "poll brick state",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "30",
+    "crontab": "",
+    "once": true,
+    "onceDelay": 2,
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 160,
+    "y": 1720,
+    "wires": [
+      [
+        "http-brick-state"
+      ]
+    ]
+  },
+  {
+    "id": "http-brick-state",
+    "type": "http request",
+    "z": "tab-main",
+    "name": "get brick state",
+    "method": "GET",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "http://192.168.0.32:5123/state",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 380,
+    "y": 1720,
+    "wires": [
+      [
+        "fn-brick-parse"
+      ]
+    ]
   }
 ]
