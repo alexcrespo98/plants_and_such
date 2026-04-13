@@ -1,0 +1,1889 @@
+[
+  {
+    "id": "mqtt-broker-1",
+    "type": "mqtt-broker",
+    "name": "Homelab MQTT",
+    "broker": "192.168.0.32",
+    "port": "1883",
+    "clientid": "nodered-main",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "autoUnsubscribe": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthRetain": "false",
+    "birthPayload": "",
+    "birthMsg": {},
+    "closeTopic": "",
+    "closeQos": "0",
+    "closeRetain": "false",
+    "closePayload": "",
+    "closeMsg": {},
+    "willTopic": "",
+    "willQos": "0",
+    "willRetain": "false",
+    "willPayload": "",
+    "willMsg": {},
+    "sessionExpiry": ""
+  },
+  {
+    "id": "ui-base-1",
+    "type": "ui_base",
+    "theme": {
+      "name": "theme-dark",
+      "lightTheme": {
+        "default": "#0D47A1",
+        "baseColor": "#0D47A1",
+        "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+        "edited": true,
+        "reset": false
+      },
+      "darkTheme": {
+        "default": "#0a0a0a",
+        "baseColor": "#00ff41",
+        "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+        "edited": true,
+        "reset": false
+      },
+      "customTheme": {
+        "name": "homelab",
+        "default": "#0a0a0a",
+        "baseColor": "#00ff41",
+        "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+        "edited": false
+      },
+      "themeState": {
+        "base-color": {
+          "value": "#00ff41",
+          "type": "color",
+          "label": "Base Color",
+          "target": "theme"
+        },
+        "page-titlebar-backgroundColor": {
+          "value": "#0a0a0a",
+          "type": "color",
+          "label": "Page Title Bar",
+          "target": "theme"
+        },
+        "page-backgroundColor": {
+          "value": "#0a0a0a",
+          "type": "color",
+          "label": "Page Background",
+          "target": "theme"
+        },
+        "page-sidebar-backgroundColor": {
+          "value": "#111111",
+          "type": "color",
+          "label": "Sidebar Background",
+          "target": "theme"
+        },
+        "group-textColor": {
+          "value": "#00ff41",
+          "type": "color",
+          "label": "Group Text",
+          "target": "theme"
+        },
+        "group-borderColor": {
+          "value": "#00ff41",
+          "type": "color",
+          "label": "Group Border",
+          "target": "theme"
+        },
+        "group-backgroundColor": {
+          "value": "#111111",
+          "type": "color",
+          "label": "Group Background",
+          "target": "theme"
+        },
+        "widget-textColor": {
+          "value": "#00ff41",
+          "type": "color",
+          "label": "Widget Text",
+          "target": "theme"
+        },
+        "widget-backgroundColor": {
+          "value": "#111111",
+          "type": "color",
+          "label": "Widget Background",
+          "target": "theme"
+        },
+        "widget-borderColor": {
+          "value": "#00ff41",
+          "type": "color",
+          "label": "Widget Border",
+          "target": "theme"
+        },
+        "base-font": {
+          "value": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+          "type": "font",
+          "label": "Font",
+          "target": "theme"
+        }
+      },
+      "angularTheme": {
+        "primary": "grey",
+        "accents": "blue",
+        "warn": "red",
+        "background": "grey",
+        "size": "1em"
+      }
+    },
+    "site": {
+      "name": "homelab",
+      "hideToolbar": "false",
+      "allowSwipe": "false",
+      "lockMenu": "false",
+      "allowInstall": "false",
+      "zoom": "1",
+      "palette": [],
+      "tabs": []
+    }
+  },
+  {
+    "id": "tab-main",
+    "type": "tab",
+    "label": "homelab",
+    "disabled": false,
+    "info": ""
+  },
+  {
+    "id": "ui-tab-aq",
+    "type": "ui_tab",
+    "z": "",
+    "name": "aquarium",
+    "icon": "dashboard",
+    "disabled": false,
+    "hidden": false
+  },
+  {
+    "id": "ui-tab-sonos",
+    "type": "ui_tab",
+    "z": "",
+    "name": "sonos",
+    "icon": "music_note",
+    "disabled": false,
+    "hidden": false
+  },
+  {
+    "id": "ui-tab-alarm",
+    "type": "ui_tab",
+    "z": "",
+    "name": "alarm + timer",
+    "icon": "alarm",
+    "disabled": false,
+    "hidden": false
+  },
+  {
+    "id": "grp-aq-light",
+    "type": "ui_group",
+    "z": "",
+    "name": "light",
+    "tab": "ui-tab-aq",
+    "order": 1,
+    "disp": true,
+    "width": "6",
+    "collapse": false,
+    "className": ""
+  },
+  {
+    "id": "grp-aq-sched",
+    "type": "ui_group",
+    "z": "",
+    "name": "schedule",
+    "tab": "ui-tab-aq",
+    "order": 2,
+    "disp": true,
+    "width": "6",
+    "collapse": false,
+    "className": ""
+  },
+  {
+    "id": "grp-sonos-ctrl",
+    "type": "ui_group",
+    "z": "",
+    "name": "controls",
+    "tab": "ui-tab-sonos",
+    "order": 1,
+    "disp": true,
+    "width": "6",
+    "collapse": false,
+    "className": ""
+  },
+  {
+    "id": "grp-alarm",
+    "type": "ui_group",
+    "z": "",
+    "name": "alarm",
+    "tab": "ui-tab-alarm",
+    "order": 1,
+    "disp": true,
+    "width": "6",
+    "collapse": false,
+    "className": ""
+  },
+  {
+    "id": "grp-timer",
+    "type": "ui_group",
+    "z": "",
+    "name": "timer",
+    "tab": "ui-tab-alarm",
+    "order": 2,
+    "disp": true,
+    "width": "6",
+    "collapse": false,
+    "className": ""
+  },
+  {
+    "id": "sw-light",
+    "type": "ui_switch",
+    "z": "tab-main",
+    "name": "light",
+    "label": "light",
+    "tooltip": "",
+    "group": "grp-aq-light",
+    "order": 1,
+    "width": 0,
+    "height": 0,
+    "passthru": true,
+    "decouple": "false",
+    "topic": "house/relay1/set",
+    "topicType": "str",
+    "style": "",
+    "onvalue": "ON",
+    "onvalueType": "str",
+    "onicon": "",
+    "oncolor": "#00ff41",
+    "offvalue": "OFF",
+    "offvalueType": "str",
+    "officon": "",
+    "offcolor": "#333333",
+    "animate": false,
+    "className": "",
+    "x": 160,
+    "y": 100,
+    "wires": [
+      [
+        "mqtt-out-relay"
+      ]
+    ]
+  },
+  {
+    "id": "mqtt-out-relay",
+    "type": "mqtt out",
+    "z": "tab-main",
+    "name": "relay set",
+    "topic": "house/relay1/set",
+    "qos": "0",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "mqtt-broker-1",
+    "x": 390,
+    "y": 100,
+    "wires": []
+  },
+  {
+    "id": "mqtt-in-status",
+    "type": "mqtt in",
+    "z": "tab-main",
+    "name": "relay status",
+    "topic": "house/relay1/status",
+    "qos": "0",
+    "datatype": "auto-detect",
+    "broker": "mqtt-broker-1",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 160,
+    "y": 160,
+    "wires": [
+      [
+        "txt-relay-status"
+      ]
+    ]
+  },
+  {
+    "id": "txt-relay-status",
+    "type": "ui_text",
+    "z": "tab-main",
+    "group": "grp-aq-light",
+    "order": 2,
+    "width": 0,
+    "height": 0,
+    "name": "relay status",
+    "label": "relay status",
+    "format": "{{msg.payload}}",
+    "layout": "row-spread",
+    "className": "",
+    "x": 390,
+    "y": 160,
+    "wires": []
+  },
+  {
+    "id": "txt-on-time",
+    "type": "ui_text_input",
+    "z": "tab-main",
+    "name": "on time",
+    "label": "on time",
+    "tooltip": "",
+    "group": "grp-aq-sched",
+    "order": 1,
+    "width": 0,
+    "height": 0,
+    "passthru": true,
+    "mode": "text",
+    "delay": 300,
+    "topic": "onTime",
+    "topicType": "str",
+    "sendOnBlur": true,
+    "className": "",
+    "x": 160,
+    "y": 260,
+    "wires": [
+      [
+        "fn-build-sched"
+      ]
+    ]
+  },
+  {
+    "id": "txt-off-time",
+    "type": "ui_text_input",
+    "z": "tab-main",
+    "name": "off time",
+    "label": "off time",
+    "tooltip": "",
+    "group": "grp-aq-sched",
+    "order": 2,
+    "width": 0,
+    "height": 0,
+    "passthru": true,
+    "mode": "text",
+    "delay": 300,
+    "topic": "offTime",
+    "topicType": "str",
+    "sendOnBlur": true,
+    "className": "",
+    "x": 160,
+    "y": 300,
+    "wires": [
+      [
+        "fn-build-sched"
+      ]
+    ]
+  },
+  {
+    "id": "fn-build-sched",
+    "type": "function",
+    "z": "tab-main",
+    "name": "build schedule",
+    "func": "if (msg.topic === 'onTime') {\n    flow.set('schedOn', msg.payload);\n} else if (msg.topic === 'offTime') {\n    flow.set('schedOff', msg.payload);\n}\nvar onTime = flow.get('schedOn') || '08:00';\nvar offTime = flow.get('schedOff') || '22:00';\nmsg.payload = JSON.stringify({on: onTime, off: offTime});\nmsg.topic = 'house/relay1/schedule/set';\nmsg.qos = 1;\nmsg.retain = true;\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 380,
+    "y": 280,
+    "wires": [
+      [
+        "mqtt-out-sched"
+      ]
+    ]
+  },
+  {
+    "id": "mqtt-out-sched",
+    "type": "mqtt out",
+    "z": "tab-main",
+    "name": "schedule set",
+    "topic": "house/relay1/schedule/set",
+    "qos": "1",
+    "retain": "true",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "mqtt-broker-1",
+    "x": 590,
+    "y": 280,
+    "wires": []
+  },
+  {
+    "id": "mqtt-in-sched-cur",
+    "type": "mqtt in",
+    "z": "tab-main",
+    "name": "schedule current",
+    "topic": "house/relay1/schedule/current",
+    "qos": "0",
+    "datatype": "auto-detect",
+    "broker": "mqtt-broker-1",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 160,
+    "y": 360,
+    "wires": [
+      [
+        "txt-sched-display"
+      ]
+    ]
+  },
+  {
+    "id": "txt-sched-display",
+    "type": "ui_text",
+    "z": "tab-main",
+    "group": "grp-aq-sched",
+    "order": 3,
+    "width": 0,
+    "height": 0,
+    "name": "current schedule",
+    "label": "current schedule",
+    "format": "{{msg.payload}}",
+    "layout": "row-spread",
+    "className": "",
+    "x": 400,
+    "y": 360,
+    "wires": []
+  },
+  {
+    "id": "btn-play-pause",
+    "type": "ui_button",
+    "z": "tab-main",
+    "name": "play / pause",
+    "group": "grp-sonos-ctrl",
+    "order": 1,
+    "width": 0,
+    "height": 0,
+    "passthru": false,
+    "label": "play / pause",
+    "tooltip": "",
+    "color": "#00ff41",
+    "bgcolor": "#0a0a0a",
+    "className": "",
+    "icon": "",
+    "payload": "",
+    "payloadType": "str",
+    "topic": "toggle",
+    "topicType": "str",
+    "x": 160,
+    "y": 460,
+    "wires": [
+      [
+        "fn-toggle"
+      ]
+    ]
+  },
+  {
+    "id": "fn-toggle",
+    "type": "function",
+    "z": "tab-main",
+    "name": "toggle play",
+    "func": "var isPlaying = flow.get('sonosPlaying') || false;\nif (isPlaying) {\n    flow.set('sonosPlaying', false);\n    msg.url = 'http://192.168.0.32:8090/pause';\n} else {\n    flow.set('sonosPlaying', true);\n    msg.url = 'http://192.168.0.32:8090/play';\n}\nmsg.method = 'POST';\nmsg.payload = '';\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 360,
+    "y": 460,
+    "wires": [
+      [
+        "http-sonos-toggle"
+      ]
+    ]
+  },
+  {
+    "id": "http-sonos-toggle",
+    "type": "http request",
+    "z": "tab-main",
+    "name": "sonos play/pause",
+    "method": "use",
+    "ret": "txt",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 570,
+    "y": 460,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "btn-next",
+    "type": "ui_button",
+    "z": "tab-main",
+    "name": "next track",
+    "group": "grp-sonos-ctrl",
+    "order": 2,
+    "width": 0,
+    "height": 0,
+    "passthru": false,
+    "label": "next track",
+    "tooltip": "",
+    "color": "#00ff41",
+    "bgcolor": "#0a0a0a",
+    "className": "",
+    "icon": "",
+    "payload": "",
+    "payloadType": "str",
+    "topic": "next",
+    "topicType": "str",
+    "x": 160,
+    "y": 520,
+    "wires": [
+      [
+        "fn-next"
+      ]
+    ]
+  },
+  {
+    "id": "fn-next",
+    "type": "function",
+    "z": "tab-main",
+    "name": "next",
+    "func": "msg.url = 'http://192.168.0.32:8090/next';\nmsg.method = 'POST';\nmsg.payload = '';\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 330,
+    "y": 520,
+    "wires": [
+      [
+        "http-sonos-next"
+      ]
+    ]
+  },
+  {
+    "id": "http-sonos-next",
+    "type": "http request",
+    "z": "tab-main",
+    "name": "sonos next",
+    "method": "use",
+    "ret": "txt",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 500,
+    "y": 520,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "btn-party",
+    "type": "ui_button",
+    "z": "tab-main",
+    "name": "party mode",
+    "group": "grp-sonos-ctrl",
+    "order": 3,
+    "width": 0,
+    "height": 0,
+    "passthru": false,
+    "label": "party mode",
+    "tooltip": "",
+    "color": "#0a0a0a",
+    "bgcolor": "#00ff41",
+    "className": "",
+    "icon": "",
+    "payload": "",
+    "payloadType": "str",
+    "topic": "party",
+    "topicType": "str",
+    "x": 160,
+    "y": 580,
+    "wires": [
+      [
+        "fn-party"
+      ]
+    ]
+  },
+  {
+    "id": "fn-party",
+    "type": "function",
+    "z": "tab-main",
+    "name": "party mode",
+    "func": "flow.set('sonosPlaying', true);\nmsg.url = 'http://192.168.0.32:8090/playlist';\nmsg.method = 'POST';\nmsg.headers = {'Content-Type': 'application/json'};\nmsg.payload = JSON.stringify({name: 'party mode'});\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 350,
+    "y": 580,
+    "wires": [
+      [
+        "http-sonos-party"
+      ]
+    ]
+  },
+  {
+    "id": "http-sonos-party",
+    "type": "http request",
+    "z": "tab-main",
+    "name": "sonos party",
+    "method": "use",
+    "ret": "txt",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 540,
+    "y": 580,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "sl-volume",
+    "type": "ui_slider",
+    "z": "tab-main",
+    "name": "volume",
+    "label": "volume",
+    "tooltip": "",
+    "group": "grp-sonos-ctrl",
+    "order": 4,
+    "width": 0,
+    "height": 0,
+    "passthru": true,
+    "outs": "end",
+    "topic": "volume",
+    "topicType": "str",
+    "min": "0",
+    "max": "100",
+    "step": "5",
+    "className": "",
+    "x": 160,
+    "y": 640,
+    "wires": [
+      [
+        "fn-volume"
+      ]
+    ]
+  },
+  {
+    "id": "fn-volume",
+    "type": "function",
+    "z": "tab-main",
+    "name": "volume",
+    "func": "msg.url = 'http://192.168.0.32:8090/volume';\nmsg.method = 'POST';\nmsg.headers = {'Content-Type': 'application/json'};\nmsg.payload = JSON.stringify({volume: msg.payload});\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 330,
+    "y": 640,
+    "wires": [
+      [
+        "http-sonos-vol"
+      ]
+    ]
+  },
+  {
+    "id": "http-sonos-vol",
+    "type": "http request",
+    "z": "tab-main",
+    "name": "sonos volume",
+    "method": "use",
+    "ret": "txt",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 510,
+    "y": 640,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "sw-alarm-en",
+    "type": "ui_switch",
+    "z": "tab-main",
+    "name": "alarm on/off",
+    "label": "alarm on/off",
+    "tooltip": "",
+    "group": "grp-alarm",
+    "order": 1,
+    "width": 0,
+    "height": 0,
+    "passthru": true,
+    "decouple": "false",
+    "topic": "alarmEnabled",
+    "topicType": "str",
+    "style": "",
+    "onvalue": true,
+    "onvalueType": "bool",
+    "onicon": "",
+    "oncolor": "#00ff41",
+    "offvalue": false,
+    "offvalueType": "bool",
+    "officon": "",
+    "offcolor": "#333333",
+    "animate": false,
+    "className": "",
+    "x": 160,
+    "y": 780,
+    "wires": [
+      [
+        "fn-alarm-master"
+      ]
+    ]
+  },
+  {
+    "id": "fn-alarm-master",
+    "type": "function",
+    "z": "tab-main",
+    "name": "alarm master",
+    "func": "flow.set('alarmEnabled', msg.payload);\nreturn null;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "flow.set('alarmEnabled', false);\nflow.set('alarmDays', {mon:false,tue:false,wed:false,thu:false,fri:false,sat:false,sun:false});\nflow.set('alarmTimes', {mwf:'07:00',thf:'08:30',ss:'09:00'});\nflow.set('alarmFiredAt', '');\nflow.set('alarmStopAt', 0);",
+    "finalize": "",
+    "libs": [],
+    "x": 380,
+    "y": 780,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "sw-mon",
+    "type": "ui_switch",
+    "z": "tab-main",
+    "name": "mon",
+    "label": "mon",
+    "tooltip": "",
+    "group": "grp-alarm",
+    "order": 2,
+    "width": 2,
+    "height": 1,
+    "passthru": true,
+    "decouple": "false",
+    "topic": "mon",
+    "topicType": "str",
+    "style": "",
+    "onvalue": true,
+    "onvalueType": "bool",
+    "onicon": "",
+    "oncolor": "#00ff41",
+    "offvalue": false,
+    "offvalueType": "bool",
+    "officon": "",
+    "offcolor": "#333333",
+    "animate": false,
+    "className": "",
+    "x": 160,
+    "y": 840,
+    "wires": [
+      [
+        "fn-alarm-days"
+      ]
+    ]
+  },
+  {
+    "id": "sw-tue",
+    "type": "ui_switch",
+    "z": "tab-main",
+    "name": "tue",
+    "label": "tue",
+    "tooltip": "",
+    "group": "grp-alarm",
+    "order": 3,
+    "width": 2,
+    "height": 1,
+    "passthru": true,
+    "decouple": "false",
+    "topic": "tue",
+    "topicType": "str",
+    "style": "",
+    "onvalue": true,
+    "onvalueType": "bool",
+    "onicon": "",
+    "oncolor": "#00ff41",
+    "offvalue": false,
+    "offvalueType": "bool",
+    "officon": "",
+    "offcolor": "#333333",
+    "animate": false,
+    "className": "",
+    "x": 160,
+    "y": 880,
+    "wires": [
+      [
+        "fn-alarm-days"
+      ]
+    ]
+  },
+  {
+    "id": "sw-wed",
+    "type": "ui_switch",
+    "z": "tab-main",
+    "name": "wed",
+    "label": "wed",
+    "tooltip": "",
+    "group": "grp-alarm",
+    "order": 4,
+    "width": 2,
+    "height": 1,
+    "passthru": true,
+    "decouple": "false",
+    "topic": "wed",
+    "topicType": "str",
+    "style": "",
+    "onvalue": true,
+    "onvalueType": "bool",
+    "onicon": "",
+    "oncolor": "#00ff41",
+    "offvalue": false,
+    "offvalueType": "bool",
+    "officon": "",
+    "offcolor": "#333333",
+    "animate": false,
+    "className": "",
+    "x": 160,
+    "y": 920,
+    "wires": [
+      [
+        "fn-alarm-days"
+      ]
+    ]
+  },
+  {
+    "id": "sw-thu",
+    "type": "ui_switch",
+    "z": "tab-main",
+    "name": "thu",
+    "label": "thu",
+    "tooltip": "",
+    "group": "grp-alarm",
+    "order": 5,
+    "width": 2,
+    "height": 1,
+    "passthru": true,
+    "decouple": "false",
+    "topic": "thu",
+    "topicType": "str",
+    "style": "",
+    "onvalue": true,
+    "onvalueType": "bool",
+    "onicon": "",
+    "oncolor": "#00ff41",
+    "offvalue": false,
+    "offvalueType": "bool",
+    "officon": "",
+    "offcolor": "#333333",
+    "animate": false,
+    "className": "",
+    "x": 160,
+    "y": 960,
+    "wires": [
+      [
+        "fn-alarm-days"
+      ]
+    ]
+  },
+  {
+    "id": "sw-fri",
+    "type": "ui_switch",
+    "z": "tab-main",
+    "name": "fri",
+    "label": "fri",
+    "tooltip": "",
+    "group": "grp-alarm",
+    "order": 6,
+    "width": 2,
+    "height": 1,
+    "passthru": true,
+    "decouple": "false",
+    "topic": "fri",
+    "topicType": "str",
+    "style": "",
+    "onvalue": true,
+    "onvalueType": "bool",
+    "onicon": "",
+    "oncolor": "#00ff41",
+    "offvalue": false,
+    "offvalueType": "bool",
+    "officon": "",
+    "offcolor": "#333333",
+    "animate": false,
+    "className": "",
+    "x": 160,
+    "y": 1000,
+    "wires": [
+      [
+        "fn-alarm-days"
+      ]
+    ]
+  },
+  {
+    "id": "sw-sat",
+    "type": "ui_switch",
+    "z": "tab-main",
+    "name": "sat",
+    "label": "sat",
+    "tooltip": "",
+    "group": "grp-alarm",
+    "order": 7,
+    "width": 2,
+    "height": 1,
+    "passthru": true,
+    "decouple": "false",
+    "topic": "sat",
+    "topicType": "str",
+    "style": "",
+    "onvalue": true,
+    "onvalueType": "bool",
+    "onicon": "",
+    "oncolor": "#00ff41",
+    "offvalue": false,
+    "offvalueType": "bool",
+    "officon": "",
+    "offcolor": "#333333",
+    "animate": false,
+    "className": "",
+    "x": 160,
+    "y": 1040,
+    "wires": [
+      [
+        "fn-alarm-days"
+      ]
+    ]
+  },
+  {
+    "id": "sw-sun",
+    "type": "ui_switch",
+    "z": "tab-main",
+    "name": "sun",
+    "label": "sun",
+    "tooltip": "",
+    "group": "grp-alarm",
+    "order": 8,
+    "width": 2,
+    "height": 1,
+    "passthru": true,
+    "decouple": "false",
+    "topic": "sun",
+    "topicType": "str",
+    "style": "",
+    "onvalue": true,
+    "onvalueType": "bool",
+    "onicon": "",
+    "oncolor": "#00ff41",
+    "offvalue": false,
+    "offvalueType": "bool",
+    "officon": "",
+    "offcolor": "#333333",
+    "animate": false,
+    "className": "",
+    "x": 160,
+    "y": 1080,
+    "wires": [
+      [
+        "fn-alarm-days"
+      ]
+    ]
+  },
+  {
+    "id": "fn-alarm-days",
+    "type": "function",
+    "z": "tab-main",
+    "name": "alarm days",
+    "func": "var days = flow.get('alarmDays') || {mon:false,tue:false,wed:false,thu:false,fri:false,sat:false,sun:false};\ndays[msg.topic] = msg.payload;\nflow.set('alarmDays', days);\nreturn null;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 380,
+    "y": 960,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "txt-time-mwf",
+    "type": "ui_text_input",
+    "z": "tab-main",
+    "name": "mon/tue/wed time",
+    "label": "mon / tue / wed",
+    "tooltip": "",
+    "group": "grp-alarm",
+    "order": 9,
+    "width": 0,
+    "height": 0,
+    "passthru": true,
+    "mode": "text",
+    "delay": 300,
+    "topic": "mwf",
+    "topicType": "str",
+    "sendOnBlur": true,
+    "className": "",
+    "x": 160,
+    "y": 1120,
+    "wires": [
+      [
+        "fn-alarm-times"
+      ]
+    ]
+  },
+  {
+    "id": "txt-time-thf",
+    "type": "ui_text_input",
+    "z": "tab-main",
+    "name": "thu/fri time",
+    "label": "thu / fri",
+    "tooltip": "",
+    "group": "grp-alarm",
+    "order": 10,
+    "width": 0,
+    "height": 0,
+    "passthru": true,
+    "mode": "text",
+    "delay": 300,
+    "topic": "thf",
+    "topicType": "str",
+    "sendOnBlur": true,
+    "className": "",
+    "x": 160,
+    "y": 1160,
+    "wires": [
+      [
+        "fn-alarm-times"
+      ]
+    ]
+  },
+  {
+    "id": "txt-time-ss",
+    "type": "ui_text_input",
+    "z": "tab-main",
+    "name": "sat/sun time",
+    "label": "sat / sun",
+    "tooltip": "",
+    "group": "grp-alarm",
+    "order": 11,
+    "width": 0,
+    "height": 0,
+    "passthru": true,
+    "mode": "text",
+    "delay": 300,
+    "topic": "ss",
+    "topicType": "str",
+    "sendOnBlur": true,
+    "className": "",
+    "x": 160,
+    "y": 1200,
+    "wires": [
+      [
+        "fn-alarm-times"
+      ]
+    ]
+  },
+  {
+    "id": "fn-alarm-times",
+    "type": "function",
+    "z": "tab-main",
+    "name": "alarm times",
+    "func": "var times = flow.get('alarmTimes') || {mwf:'07:00',thf:'08:30',ss:'09:00'};\ntimes[msg.topic] = msg.payload;\nflow.set('alarmTimes', times);\nreturn null;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 390,
+    "y": 1160,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "inj-alarm",
+    "type": "inject",
+    "z": "tab-main",
+    "name": "alarm check",
+    "props": [
+      {
+        "p": "payload"
+      },
+      {
+        "p": "topic",
+        "vt": "str"
+      }
+    ],
+    "repeat": "60",
+    "crontab": "",
+    "once": true,
+    "onceDelay": 5,
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 160,
+    "y": 1260,
+    "wires": [
+      [
+        "fn-check-alarm"
+      ]
+    ]
+  },
+  {
+    "id": "fn-check-alarm",
+    "type": "function",
+    "z": "tab-main",
+    "name": "check alarm",
+    "func": "// Auto-stop check\nvar stopAt = flow.get('alarmStopAt') || 0;\nif (stopAt > 0 && Date.now() >= stopAt) {\n    flow.set('alarmStopAt', 0);\n    var stopMsg = {url:'http://192.168.0.32:8090/pause', method:'POST', payload:''};\n    return [null, stopMsg];\n}\n\nvar enabled = flow.get('alarmEnabled');\nif (!enabled) return null;\n\nvar days = flow.get('alarmDays') || {};\nvar times = flow.get('alarmTimes') || {mwf:'07:00',thf:'08:30',ss:'09:00'};\n\nvar now = new Date();\nvar dow = now.getDay();\nvar hh = now.getHours().toString().padStart(2,'0');\nvar mm = now.getMinutes().toString().padStart(2,'0');\nvar currentTime = hh + ':' + mm;\n\nvar dayKeys = ['sun','mon','tue','wed','thu','fri','sat'];\nvar todayKey = dayKeys[dow];\n\nif (!days[todayKey]) return null;\n\nvar targetTime;\nif (['mon','tue','wed'].indexOf(todayKey) >= 0) targetTime = times.mwf || '07:00';\nelse if (['thu','fri'].indexOf(todayKey) >= 0) targetTime = times.thf || '08:30';\nelse targetTime = times.ss || '09:00';\n\nif (currentTime !== targetTime) return null;\n\nvar firedKey = todayKey + '-' + now.getDate() + '-' + targetTime;\nvar firedAt = flow.get('alarmFiredAt') || '';\nif (firedAt === firedKey) return null;\n\nflow.set('alarmFiredAt', firedKey);\nflow.set('alarmStopAt', Date.now() + 10 * 60 * 1000);\n\nvar volMsg = {\n    url: 'http://192.168.0.32:8090/volume',\n    method: 'POST',\n    headers: {'Content-Type': 'application/json'},\n    payload: JSON.stringify({volume: 50})\n};\nreturn [volMsg, null];",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 360,
+    "y": 1260,
+    "wires": [
+      [
+        "http-alarm-vol"
+      ],
+      [
+        "http-alarm-stop"
+      ]
+    ]
+  },
+  {
+    "id": "http-alarm-vol",
+    "type": "http request",
+    "z": "tab-main",
+    "name": "alarm volume",
+    "method": "POST",
+    "ret": "txt",
+    "paytoqs": "ignore",
+    "url": "http://192.168.0.32:8090/volume",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 580,
+    "y": 1240,
+    "wires": [
+      [
+        "fn-alarm-then-play"
+      ]
+    ]
+  },
+  {
+    "id": "fn-alarm-then-play",
+    "type": "function",
+    "z": "tab-main",
+    "name": "alarm play",
+    "func": "msg.url = 'http://192.168.0.32:8090/playlist';\nmsg.method = 'POST';\nmsg.headers = {'Content-Type': 'application/json'};\nmsg.payload = JSON.stringify({name: 'alarm'});\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 780,
+    "y": 1240,
+    "wires": [
+      [
+        "http-alarm-play"
+      ]
+    ]
+  },
+  {
+    "id": "http-alarm-play",
+    "type": "http request",
+    "z": "tab-main",
+    "name": "alarm play",
+    "method": "POST",
+    "ret": "txt",
+    "paytoqs": "ignore",
+    "url": "http://192.168.0.32:8090/playlist",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 960,
+    "y": 1240,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "http-alarm-stop",
+    "type": "http request",
+    "z": "tab-main",
+    "name": "alarm stop",
+    "method": "POST",
+    "ret": "txt",
+    "paytoqs": "ignore",
+    "url": "http://192.168.0.32:8090/pause",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 580,
+    "y": 1280,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "dd-timer-dur",
+    "type": "ui_dropdown",
+    "z": "tab-main",
+    "name": "duration",
+    "label": "duration",
+    "tooltip": "",
+    "place": "select",
+    "group": "grp-timer",
+    "order": 1,
+    "width": 0,
+    "height": 0,
+    "passthru": true,
+    "multiple": false,
+    "options": [
+      {
+        "label": "5 min",
+        "value": "5",
+        "t": "str"
+      },
+      {
+        "label": "10 min",
+        "value": "10",
+        "t": "str"
+      },
+      {
+        "label": "30 min",
+        "value": "30",
+        "t": "str"
+      }
+    ],
+    "payload": "",
+    "topic": "duration",
+    "topicType": "str",
+    "className": "",
+    "x": 160,
+    "y": 1400,
+    "wires": [
+      [
+        "fn-set-dur"
+      ]
+    ]
+  },
+  {
+    "id": "fn-set-dur",
+    "type": "function",
+    "z": "tab-main",
+    "name": "set duration",
+    "func": "flow.set('timerDuration', parseInt(msg.payload));\nreturn null;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "flow.set('timerDuration', 5);\nflow.set('timerEnd', 0);\nflow.set('timerActive', false);\nflow.set('timerFired', false);\nflow.set('timerStopAt', 0);",
+    "finalize": "",
+    "libs": [],
+    "x": 360,
+    "y": 1400,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "btn-start-timer",
+    "type": "ui_button",
+    "z": "tab-main",
+    "name": "start timer",
+    "group": "grp-timer",
+    "order": 2,
+    "width": 0,
+    "height": 0,
+    "passthru": false,
+    "label": "start timer",
+    "tooltip": "",
+    "color": "#0a0a0a",
+    "bgcolor": "#00ff41",
+    "className": "",
+    "icon": "",
+    "payload": "",
+    "payloadType": "str",
+    "topic": "start",
+    "topicType": "str",
+    "x": 160,
+    "y": 1460,
+    "wires": [
+      [
+        "fn-start-timer"
+      ]
+    ]
+  },
+  {
+    "id": "fn-start-timer",
+    "type": "function",
+    "z": "tab-main",
+    "name": "start timer",
+    "func": "var dur = flow.get('timerDuration') || 5;\nvar endTime = Date.now() + dur * 60 * 1000;\nflow.set('timerEnd', endTime);\nflow.set('timerActive', true);\nflow.set('timerFired', false);\nflow.set('timerStopAt', 0);\nreturn null;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 360,
+    "y": 1460,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "btn-cancel-timer",
+    "type": "ui_button",
+    "z": "tab-main",
+    "name": "cancel",
+    "group": "grp-timer",
+    "order": 3,
+    "width": 0,
+    "height": 0,
+    "passthru": false,
+    "label": "cancel",
+    "tooltip": "",
+    "color": "#00ff41",
+    "bgcolor": "#0a0a0a",
+    "className": "",
+    "icon": "",
+    "payload": "",
+    "payloadType": "str",
+    "topic": "cancel",
+    "topicType": "str",
+    "x": 160,
+    "y": 1520,
+    "wires": [
+      [
+        "fn-cancel-timer"
+      ]
+    ]
+  },
+  {
+    "id": "fn-cancel-timer",
+    "type": "function",
+    "z": "tab-main",
+    "name": "cancel timer",
+    "func": "flow.set('timerActive', false);\nflow.set('timerEnd', 0);\nflow.set('timerFired', false);\nflow.set('timerStopAt', 0);\nmsg.payload = '-- : --';\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 360,
+    "y": 1520,
+    "wires": [
+      [
+        "txt-countdown"
+      ]
+    ]
+  },
+  {
+    "id": "txt-countdown",
+    "type": "ui_text",
+    "z": "tab-main",
+    "group": "grp-timer",
+    "order": 4,
+    "width": 0,
+    "height": 0,
+    "name": "countdown",
+    "label": "timer",
+    "format": "{{msg.payload}}",
+    "layout": "row-spread",
+    "className": "",
+    "x": 600,
+    "y": 1520,
+    "wires": []
+  },
+  {
+    "id": "inj-tick",
+    "type": "inject",
+    "z": "tab-main",
+    "name": "tick",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "1",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 160,
+    "y": 1580,
+    "wires": [
+      [
+        "fn-tick"
+      ]
+    ]
+  },
+  {
+    "id": "fn-tick",
+    "type": "function",
+    "z": "tab-main",
+    "name": "tick",
+    "func": "var active = flow.get('timerActive');\n\n// Auto-stop check (runs even when inactive, to stop alarm after 10 min)\nvar timerStopAt = flow.get('timerStopAt') || 0;\nif (timerStopAt > 0 && Date.now() >= timerStopAt) {\n    flow.set('timerStopAt', 0);\n    flow.set('timerFired', false);\n    node.send([{payload:'-- : --'}, null,\n               {url:'http://192.168.0.32:8090/pause', method:'POST', payload:''}]);\n    return null;\n}\n\nif (!active) return null;\n\nvar endTime = flow.get('timerEnd') || 0;\nvar remaining = endTime - Date.now();\n\nif (remaining <= 0) {\n    var fired = flow.get('timerFired');\n    if (!fired) {\n        flow.set('timerFired', true);\n        flow.set('timerActive', false);\n        flow.set('timerStopAt', Date.now() + 10 * 60 * 1000);\n        node.send([\n            {payload: '00:00'},\n            {url:'http://192.168.0.32:8090/volume', method:'POST',\n             headers:{'Content-Type':'application/json'},\n             payload:JSON.stringify({volume:50})},\n            null\n        ]);\n    }\n    return null;\n}\n\nvar totalSecs = Math.ceil(remaining / 1000);\nvar mins = Math.floor(totalSecs / 60);\nvar secs = totalSecs % 60;\nmsg.payload = mins + ':' + secs.toString().padStart(2, '0');\nreturn [msg, null, null];",
+    "outputs": 3,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 330,
+    "y": 1580,
+    "wires": [
+      [
+        "txt-countdown"
+      ],
+      [
+        "http-timer-vol"
+      ],
+      [
+        "http-timer-stop"
+      ]
+    ]
+  },
+  {
+    "id": "http-timer-vol",
+    "type": "http request",
+    "z": "tab-main",
+    "name": "timer volume",
+    "method": "POST",
+    "ret": "txt",
+    "paytoqs": "ignore",
+    "url": "http://192.168.0.32:8090/volume",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 550,
+    "y": 1560,
+    "wires": [
+      [
+        "fn-timer-then-play"
+      ]
+    ]
+  },
+  {
+    "id": "fn-timer-then-play",
+    "type": "function",
+    "z": "tab-main",
+    "name": "timer play",
+    "func": "msg.url = 'http://192.168.0.32:8090/playlist';\nmsg.method = 'POST';\nmsg.headers = {'Content-Type': 'application/json'};\nmsg.payload = JSON.stringify({name: 'alarm'});\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 740,
+    "y": 1560,
+    "wires": [
+      [
+        "http-timer-play"
+      ]
+    ]
+  },
+  {
+    "id": "http-timer-play",
+    "type": "http request",
+    "z": "tab-main",
+    "name": "timer play",
+    "method": "POST",
+    "ret": "txt",
+    "paytoqs": "ignore",
+    "url": "http://192.168.0.32:8090/playlist",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 920,
+    "y": 1560,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "http-timer-stop",
+    "type": "http request",
+    "z": "tab-main",
+    "name": "timer stop",
+    "method": "POST",
+    "ret": "txt",
+    "paytoqs": "ignore",
+    "url": "http://192.168.0.32:8090/pause",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 550,
+    "y": 1600,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "ui-tab-brick",
+    "type": "ui_tab",
+    "z": "",
+    "name": "brick",
+    "icon": "block",
+    "disabled": false,
+    "hidden": false
+  },
+  {
+    "id": "grp-brick",
+    "type": "ui_group",
+    "z": "",
+    "name": "focus mode",
+    "tab": "ui-tab-brick",
+    "order": 1,
+    "disp": true,
+    "width": "6",
+    "collapse": false,
+    "className": ""
+  },
+  {
+    "id": "txt-brick-status",
+    "type": "ui_text",
+    "z": "tab-main",
+    "group": "grp-brick",
+    "order": 1,
+    "width": 0,
+    "height": 0,
+    "name": "brick status",
+    "label": "focus",
+    "format": "{{msg.payload}}",
+    "layout": "row-spread",
+    "className": "",
+    "x": 600,
+    "y": 1720,
+    "wires": []
+  },
+  {
+    "id": "txt-brick-time",
+    "type": "ui_text",
+    "z": "tab-main",
+    "group": "grp-brick",
+    "order": 2,
+    "width": 0,
+    "height": 0,
+    "name": "brick updated",
+    "label": "updated",
+    "format": "{{msg.payload}}",
+    "layout": "row-spread",
+    "className": "",
+    "x": 600,
+    "y": 1760,
+    "wires": []
+  },
+  {
+    "id": "btn-brick-toggle",
+    "type": "ui_button",
+    "z": "tab-main",
+    "name": "toggle focus",
+    "group": "grp-brick",
+    "order": 3,
+    "width": 0,
+    "height": 0,
+    "passthru": false,
+    "label": "toggle",
+    "tooltip": "flip focus on / off",
+    "color": "#0a0a0a",
+    "bgcolor": "#00ff41",
+    "className": "",
+    "icon": "",
+    "payload": "",
+    "payloadType": "str",
+    "topic": "toggle",
+    "topicType": "str",
+    "x": 160,
+    "y": 1800,
+    "wires": [
+      [
+        "fn-brick-toggle"
+      ]
+    ]
+  },
+  {
+    "id": "btn-brick-on",
+    "type": "ui_button",
+    "z": "tab-main",
+    "name": "brick on",
+    "group": "grp-brick",
+    "order": 4,
+    "width": 0,
+    "height": 0,
+    "passthru": false,
+    "label": "on",
+    "tooltip": "enable focus mode",
+    "color": "#00ff41",
+    "bgcolor": "#0a0a0a",
+    "className": "",
+    "icon": "",
+    "payload": "",
+    "payloadType": "str",
+    "topic": "on",
+    "topicType": "str",
+    "x": 160,
+    "y": 1840,
+    "wires": [
+      [
+        "fn-brick-on"
+      ]
+    ]
+  },
+  {
+    "id": "btn-brick-off",
+    "type": "ui_button",
+    "z": "tab-main",
+    "name": "brick off",
+    "group": "grp-brick",
+    "order": 5,
+    "width": 0,
+    "height": 0,
+    "passthru": false,
+    "label": "off",
+    "tooltip": "disable focus mode",
+    "color": "#00ff41",
+    "bgcolor": "#0a0a0a",
+    "className": "",
+    "icon": "",
+    "payload": "",
+    "payloadType": "str",
+    "topic": "off",
+    "topicType": "str",
+    "x": 160,
+    "y": 1880,
+    "wires": [
+      [
+        "fn-brick-off"
+      ]
+    ]
+  },
+  {
+    "id": "fn-brick-toggle",
+    "type": "function",
+    "z": "tab-main",
+    "name": "brick toggle req",
+    "func": "msg.url = 'http://192.168.0.32:5123/toggle';\nmsg.method = 'GET';\nmsg.payload = '';\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 370,
+    "y": 1800,
+    "wires": [
+      [
+        "http-brick-cmd",
+        "fn-brick-parse"
+      ]
+    ]
+  },
+  {
+    "id": "fn-brick-on",
+    "type": "function",
+    "z": "tab-main",
+    "name": "brick on req",
+    "func": "msg.url = 'http://192.168.0.32:5123/on';\nmsg.method = 'GET';\nmsg.payload = '';\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 350,
+    "y": 1840,
+    "wires": [
+      [
+        "http-brick-cmd",
+        "fn-brick-parse"
+      ]
+    ]
+  },
+  {
+    "id": "fn-brick-off",
+    "type": "function",
+    "z": "tab-main",
+    "name": "brick off req",
+    "func": "msg.url = 'http://192.168.0.32:5123/off';\nmsg.method = 'GET';\nmsg.payload = '';\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 350,
+    "y": 1880,
+    "wires": [
+      [
+        "http-brick-cmd",
+        "fn-brick-parse"
+      ]
+    ]
+  },
+  {
+    "id": "http-brick-cmd",
+    "type": "http request",
+    "z": "tab-main",
+    "name": "brick cmd",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 570,
+    "y": 1840,
+    "wires": [
+      [
+        "fn-brick-parse"
+      ]
+    ]
+  },
+  {
+    "id": "fn-brick-parse",
+    "type": "function",
+    "z": "tab-main",
+    "name": "parse brick state",
+    "func": "var data = msg.payload;\nif (typeof data === 'string') {\n    try { data = JSON.parse(data); } catch(e) { return null; }\n}\nvar focusVal = data.focus;\nvar label = (focusVal === true || focusVal === 'true') ? 'ON \u2014 blocking' : 'OFF \u2014 normal';\nvar timeVal = data.updated_at || '';\nnode.send([\n    {payload: label},\n    {payload: timeVal}\n]);\nreturn null;",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 780,
+    "y": 1760,
+    "wires": [
+      [
+        "txt-brick-status"
+      ],
+      [
+        "txt-brick-time"
+      ]
+    ]
+  },
+  {
+    "id": "inj-brick-poll",
+    "type": "inject",
+    "z": "tab-main",
+    "name": "poll brick state",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "30",
+    "crontab": "",
+    "once": true,
+    "onceDelay": 2,
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 160,
+    "y": 1720,
+    "wires": [
+      [
+        "http-brick-state"
+      ]
+    ]
+  },
+  {
+    "id": "http-brick-state",
+    "type": "http request",
+    "z": "tab-main",
+    "name": "get brick state",
+    "method": "GET",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "http://192.168.0.32:5123/state",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 380,
+    "y": 1720,
+    "wires": [
+      [
+        "fn-brick-parse"
+      ]
+    ]
+  }
+]
