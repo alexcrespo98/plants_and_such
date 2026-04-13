@@ -1,0 +1,17 @@
+[Unit]
+Description=Brick — Pi-hole focus toggle HTTP server
+After=network.target pihole-FTL.service
+Wants=pihole-FTL.service
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/Desktop/brick
+ExecStart=/usr/bin/python3 /home/pi/Desktop/brick/server/brick_server.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
