@@ -1,0 +1,17 @@
+[Unit]
+Description=Brick — Pi-hole live query stream WebSocket server
+After=network.target pihole-FTL.service
+Wants=pihole-FTL.service
+
+[Service]
+Type=simple
+User=crespo
+WorkingDirectory=/home/crespo/Desktop/brick
+ExecStart=/usr/bin/python3 /home/crespo/Desktop/brick/server/stream_server.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

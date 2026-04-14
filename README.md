@@ -40,28 +40,36 @@ tabs:
 
 ## brick (`brick/`)
 
-pi-hole focus toggle. tiny http server (port 5123) that flips pi-hole blocklist groups on/off over tailscale.
+pi-hole focus toggle. tiny http server (port 5123) that flips pi-hole blocklist groups on/off over tailscale, using the **pi-hole v6 REST API** (no sqlite3, no pihole-FTL restarts). a live WebSocket stream server on port 5124 feeds a standalone dashboard.
 
 ```
 brick/
-├── state.json                  # current focus state (on/off + timestamp)
-├── brick-server.service        # systemd unit — install to /etc/systemd/system/
+├── state.json                     # current focus state (on/off + timestamp)
+├── brick-server.service           # systemd unit — install to /etc/systemd/system/
+├── dashboard.html                 # standalone dark-theme dashboard (open in browser)
 ├── scripts/
-│   ├── focus-on.sh             # enables FocusON group, disables FocusOFF
-│   └── focus-off.sh            # enables FocusOFF group, disables FocusON
+│   ├── focus-on.sh                # curl shortcut → POST /on
+│   └── focus-off.sh               # curl shortcut → POST /off
 └── server/
-    └── brick_server.py         # http server on port 5123
+    ├── brick_server.py            # http server on port 5123
+    ├── stream_server.py           # WebSocket server on port 5124 (live DNS feed)
+    └── stream_server.service      # systemd unit for stream server
 ```
 
 **api (port 5123):**
 
-| url | what it does |
-|---|---|
-| `/state` | returns current focus state + timestamp |
-| `/toggle` | flips focus on ↔ off |
-| `/on` | enables focus mode |
-| `/off` | disables focus mode |
-| `/health` | health check |
+| url | method | what it does |
+|---|---|---|
+| `/state` | GET | returns current focus state + timestamp |
+| `/toggle` | GET | flips focus on ↔ off |
+| `/on` | GET | enables focus mode |
+| `/off` | GET | disables focus mode |
+| `/health` | GET | health check |
+| `/block` | POST | adds `{"domain": "…"}` to pi-hole deny list |
+
+**WebSocket (port 5124):**
+
+streams DNS queries as JSON: `{"domain": "…", "client": "…", "status": "…", "time": …, "phone": false, "focus": true}`
 
 **pi-hole groups:**
 
@@ -70,27 +78,44 @@ brick/
 | FocusON | brick is ON | distracting sites blocked |
 | FocusOFF | brick is OFF (default) | normal browsing |
 
-**install:**
+**phone exclusion:** `192.168.0.9` (MAC `e6:8e:39:e7:64:36`) is highlighted in the dashboard feed with `"phone": true` / `★phone`. to fully exclude the phone from focus blocks, assign it to a separate pi-hole client group that does not inherit the FocusON blocklist (Pi-hole admin → Groups → assign phone MAC to a group that FocusON does not apply to).
+
+**dependencies:**
 ```bash
-# copy files to raspberry pi
-scp -r brick/ pi@<pi-ip>:~/Desktop/
-
-# install and enable the persistent server service
-sudo cp ~/Desktop/brick/brick-server.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable brick-server.service
-sudo systemctl start brick-server.service
-
-# check it's running
-systemctl status brick-server.service
-curl http://localhost:5123/state
+# websockets library (for stream_server.py)
+sudo apt install python3-websockets
+# or:
+pip3 install websockets --break-system-packages
 ```
 
-**behaviour on restart:** server always defaults to FocusOFF on startup, then waits for `/toggle`, `/on`, or `/off` calls.
+**install:**
+```bash
+# copy files to the server (pi-hole runs on localhost / 192.168.0.32)
+scp -r brick/ crespo@192.168.0.32:~/Desktop/
 
-**permissions required** (`/etc/sudoers.d/`):
-- `brick-pihole` — allows `sqlite3` on pi-hole db without password
-- `brick-nopasswd` — allows focus scripts without password
+# brick http server (port 5123)
+sudo cp ~/Desktop/brick/brick-server.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now brick-server.service
+
+# live query stream (port 5124)
+sudo cp ~/Desktop/brick/server/stream_server.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now stream_server.service
+
+# verify
+curl http://localhost:5123/state
+systemctl status brick-server.service stream_server.service
+```
+
+open `brick/dashboard.html` directly in the browser — no build step, no server required.
+
+**behaviour on restart:** server always defaults to the last saved state in `state.json`; on first run defaults to FocusOFF.
+
+**architecture:**
+- `brick_server.py` authenticates with pi-hole v6 (`POST /api/auth` → `sid`), then calls `PUT /api/groups/{name}` to toggle groups — instant, no pihole-FTL restart needed.
+- `stream_server.py` polls `GET /api/queries?max=25` every 2 s and pushes new entries over WebSocket. handles re-auth automatically on session expiry.
+- sudoers entries for sqlite3 / focus scripts are **no longer needed**.
 
 ## dependencies
 
@@ -98,4 +123,5 @@ curl http://localhost:5123/state
 - node-red + node-red-dashboard
 - sonos_bridge.py (flask, port 8090, uses soco)
 - arduino libs: WiFi, PubSubClient, Preferences, HTTPClient
-- pi-hole with FocusON + FocusOFF groups configured
+- pi-hole v6 with FocusON + FocusOFF groups configured
+- python3-websockets (for `brick/server/stream_server.py`)
