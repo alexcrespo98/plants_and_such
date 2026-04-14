@@ -1,6 +1,6 @@
 [Unit]
 Description=Brick — Pi-hole live query stream WebSocket server
-After=network.target pihole-FTL.service
+After=network.target pihole-FTL.service brick-server.service
 Wants=pihole-FTL.service
 
 [Service]
