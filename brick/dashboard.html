@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>brick — dns dashboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #0a0a0a;
+    --bg2:     #111111;
+    --bg3:     #1a1a1a;
+    --green:   #00ff41;
+    --red:     #ff2244;
+    --yellow:  #ffcc00;
+    --dim:     #444;
+    --text:    #cccccc;
+    --font:    'Courier New', Courier, monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid #222;
+    background: var(--bg2);
+    flex-wrap: wrap;
+  }
+
+  header h1 {
+    color: var(--green);
+    font-size: 18px;
+    letter-spacing: 2px;
+    text-transform: lowercase;
+  }
+
+  .status-row {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    flex: 1;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  .badge {
+    padding: 3px 10px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: var(--bg3);
+    border: 1px solid var(--dim);
+    color: var(--dim);
+  }
+  .badge.ok   { border-color: var(--green); color: var(--green); }
+  .badge.err  { border-color: var(--red);   color: var(--red); }
+  .badge.warn { border-color: var(--yellow); color: var(--yellow); }
+
+  #toggle-btn {
+    padding: 6px 18px;
+    border: 1px solid var(--green);
+    background: transparent;
+    color: var(--green);
+    font-family: var(--font);
+    font-size: 13px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background 0.15s, color 0.15s;
+  }
+  #toggle-btn:hover { background: var(--green); color: var(--bg); }
+  #toggle-btn.on    { background: var(--green); color: var(--bg); }
+
+  #focus-label {
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--dim);
+  }
+  #focus-label.on  { color: var(--green); }
+  #focus-label.off { color: var(--dim); }
+
+  main {
+    padding: 0 20px 20px;
+  }
+
+  #query-count {
+    padding: 10px 0 6px;
+    color: var(--dim);
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead th {
+    text-align: left;
+    color: var(--dim);
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 6px 10px;
+    border-bottom: 1px solid #222;
+    text-transform: uppercase;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid #181818;
+    transition: background 0.1s;
+  }
+  tbody tr:hover { background: var(--bg2); }
+
+  td {
+    padding: 5px 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 320px;
+  }
+
+  .td-time   { color: var(--dim); width: 90px; }
+  .td-client { width: 130px; }
+  .td-domain { max-width: 360px; color: #eee; }
+  .td-status { width: 100px; }
+  .td-action { width: 80px; text-align: right; }
+
+  .status-blocked { color: var(--red); }
+  .status-allowed { color: var(--green); }
+  .status-other   { color: var(--dim); }
+
+  .client-phone { color: var(--yellow); font-weight: bold; }
+
+  .block-btn {
+    padding: 2px 10px;
+    border: 1px solid var(--red);
+    background: transparent;
+    color: var(--red);
+    font-family: var(--font);
+    font-size: 11px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+  .block-btn:hover    { background: var(--red); color: var(--bg); }
+  .block-btn:disabled { opacity: 0.35; cursor: default; }
+  .block-btn.done     { border-color: var(--dim); color: var(--dim); }
+
+  #empty-msg {
+    color: var(--dim);
+    padding: 30px 10px;
+    text-align: center;
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🧱 brick</h1>
+
+  <button id="toggle-btn" onclick="toggleFocus()">FOCUS OFF</button>
+  <span id="focus-label" class="off">focus is off</span>
+
+  <div class="status-row">
+    <span class="badge" id="ws-badge">ws: connecting</span>
+    <span class="badge" id="brick-badge">brick: checking</span>
+  </div>
+</header>
+
+<main>
+  <div id="query-count">waiting for queries…</div>
+  <table>
+    <thead>
+      <tr>
+        <th class="td-time">time</th>
+        <th class="td-client">client</th>
+        <th class="td-domain">domain</th>
+        <th class="td-status">status</th>
+        <th class="td-action">block</th>
+      </tr>
+    </thead>
+    <tbody id="feed"></tbody>
+  </table>
+  <div id="empty-msg">no queries yet — waiting for stream…</div>
+</main>
+
+<script>
+const BRICK   = 'http://localhost:5123';
+const WS_URL  = 'ws://localhost:5124';
+const PHONE   = '192.168.0.9';
+const MAX_ROWS = 200;
+
+let ws, wsRetryTimer;
+let rowCount = 0;
+
+// ── WebSocket ──────────────────────────────────────────────────────────────────
+
+function connectWS() {
+  clearTimeout(wsRetryTimer);
+  setWsBadge('connecting', 'warn');
+  ws = new WebSocket(WS_URL);
+
+  ws.onopen = () => setWsBadge('connected', 'ok');
+
+  ws.onmessage = e => {
+    try { addRow(JSON.parse(e.data)); } catch (_) {}
+  };
+
+  ws.onerror = () => setWsBadge('error', 'err');
+
+  ws.onclose = () => {
+    setWsBadge('reconnecting…', 'warn');
+    wsRetryTimer = setTimeout(connectWS, 3000);
+  };
+}
+
+// ── brick state ────────────────────────────────────────────────────────────────
+
+async function fetchState() {
+  try {
+    const r = await fetch(`${BRICK}/state`);
+    if (!r.ok) throw new Error(r.status);
+    const d = await r.json();
+    setBrickBadge('ok', 'ok');
+    applyFocusUI(d.focus);
+    return d.focus;
+  } catch {
+    setBrickBadge('unreachable', 'err');
+    return false;
+  }
+}
+
+async function toggleFocus() {
+  try {
+    const r = await fetch(`${BRICK}/toggle`);
+    const d = await r.json();
+    applyFocusUI(d.focus);
+  } catch {
+    setBrickBadge('error', 'err');
+  }
+}
+
+function applyFocusUI(on) {
+  const btn   = document.getElementById('toggle-btn');
+  const label = document.getElementById('focus-label');
+  if (on) {
+    btn.textContent = 'FOCUS ON';
+    btn.classList.add('on');
+    label.textContent = 'focus is on';
+    label.className = 'on';
+  } else {
+    btn.textContent = 'FOCUS OFF';
+    btn.classList.remove('on');
+    label.textContent = 'focus is off';
+    label.className = 'off';
+  }
+}
+
+// ── block domain ───────────────────────────────────────────────────────────────
+
+async function blockDomain(domain, btn) {
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    const r = await fetch(`${BRICK}/block`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({domain}),
+    });
+    if (r.ok) {
+      btn.textContent = 'blocked';
+      btn.classList.add('done');
+    } else {
+      btn.textContent = 'fail';
+      btn.disabled = false;
+    }
+  } catch {
+    btn.textContent = 'err';
+    btn.disabled = false;
+  }
+}
+
+// ── feed ───────────────────────────────────────────────────────────────────────
+
+function addRow(q) {
+  const tbody = document.getElementById('feed');
+  const empty = document.getElementById('empty-msg');
+  empty.style.display = 'none';
+
+  const ts    = q.time ? new Date(q.time * 1000).toLocaleTimeString() : '—';
+  const isPhone = q.client === PHONE || q.phone;
+
+  // Pi-hole v6 status codes: 2=gravity-blocked, 3=forwarded, 4=cache,
+  // 5-9=regex/denylist/cname/ip-blocked, 10=cache-stale, 11=retried
+  const status = (q.status || '').toString().toLowerCase();
+  let statusClass = 'status-other';
+  let statusText  = q.status || '?';
+  if (status.includes('block') || ['5','6','7','8','9','10','11'].includes(status)) {
+    statusClass = 'status-blocked';
+    statusText  = 'blocked';
+  } else if (status === '2' || status === '3' || status.includes('allow') || status.includes('forward') || status.includes('cache')) {
+    statusClass = 'status-allowed';
+    statusText  = 'allowed';
+  }
+
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="td-time">${ts}</td>
+    <td class="td-client ${isPhone ? 'client-phone' : ''}">${q.client}${isPhone ? ' ★phone' : ''}</td>
+    <td class="td-domain" title="${q.domain}">${q.domain}</td>
+    <td class="td-status ${statusClass}">${statusText}</td>
+    <td class="td-action"><button class="block-btn">block</button></td>
+  `;
+
+  const btn = tr.querySelector('.block-btn');
+  btn.addEventListener('click', () => blockDomain(q.domain, btn));
+
+  tbody.insertBefore(tr, tbody.firstChild);
+  rowCount++;
+
+  // trim old rows
+  while (tbody.rows.length > MAX_ROWS) {
+    tbody.deleteRow(tbody.rows.length - 1);
+    rowCount--;
+  }
+
+  document.getElementById('query-count').textContent =
+    `${rowCount} queries (newest first) — last: ${ts}`;
+}
+
+// ── badge helpers ──────────────────────────────────────────────────────────────
+
+function setWsBadge(text, cls) {
+  const el = document.getElementById('ws-badge');
+  el.textContent = `ws: ${text}`;
+  el.className = `badge ${cls}`;
+}
+
+function setBrickBadge(text, cls) {
+  const el = document.getElementById('brick-badge');
+  el.textContent = `brick: ${text}`;
+  el.className = `badge ${cls}`;
+}
+
+// ── init ───────────────────────────────────────────────────────────────────────
+
+fetchState();
+connectWS();
+// keep brick badge alive
+setInterval(fetchState, 15000);
+</script>
+</body>
+</html>
