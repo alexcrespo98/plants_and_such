@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 stream_server.py — WebSocket server on port 5124
-Polls Pi-hole v6 /api/queries every 2 s and broadcasts new DNS queries
+Polls Pi-hole v6 /api/queries every 1.5 s and broadcasts new DNS queries
 to every connected browser client.
 """
 import asyncio, json, os, time, urllib.request, urllib.error
@@ -11,7 +11,7 @@ PIHOLE_API  = "http://localhost/api"
 PIHOLE_PASS = "0990"
 PHONE_IP    = "192.168.0.9"
 STATE_FILE  = os.path.expanduser("~/Desktop/brick/state.json")
-POLL_SECS   = 2
+POLL_SECS   = 1.5
 PORT        = 5124
 
 _sid = None
@@ -57,6 +57,17 @@ def _load_focus():
         pass
     return False
 
+def _normalize_status(raw_status) -> str:
+    """Convert Pi-hole v6 status code or string to BLOCKED/ALLOWED."""
+    s = str(raw_status).lower()
+    # Pi-hole v6 numeric codes: 1=gravity-blocked, 4=regex-blocked,
+    # 5=denylist, 6=external-blocked, 9=external-blocked-ip,
+    # 10=cname-blocked, 11=retried-cname-blocked
+    blocked_codes = {"1", "4", "5", "6", "9", "10", "11"}
+    if s in blocked_codes or "block" in s or "deny" in s:
+        return "BLOCKED"
+    return "ALLOWED"
+
 # ── broadcast helpers ──────────────────────────────────────────────────────────
 
 CLIENTS: set = set()
@@ -69,11 +80,21 @@ async def broadcast(msg: str):
 
 async def poll_loop():
     seen_times: set = set()
+    was_paused = False
     while True:
         await asyncio.sleep(POLL_SECS)
         if not CLIENTS:
             continue
         focus = _load_focus()
+
+        if not focus:
+            if not was_paused:
+                await broadcast(json.dumps({"paused": True}))
+                was_paused = True
+            continue
+
+        was_paused = False
+
         try:
             data = await asyncio.get_event_loop().run_in_executor(None, _fetch_queries)
             queries = data.get("queries", [])
@@ -88,20 +109,21 @@ async def poll_loop():
                 continue
             seen_times.add(ts)
 
-            client_ip = q.get("client", {}).get("ip", "")
-            is_phone  = client_ip == PHONE_IP
+            client_info = q.get("client", {})
+            client_ip   = client_info.get("ip", "")
+            client_name = client_info.get("name", "")
 
             msg = {
-                "domain": q.get("domain", ""),
-                "client": client_ip,
-                "status": q.get("status", ""),
-                "time":   ts,
-                "phone":  is_phone,
-                "focus":  focus,
+                "time":        ts,
+                "domain":      q.get("domain", ""),
+                "client_ip":   client_ip,
+                "client_name": client_name,
+                "status":      _normalize_status(q.get("status", "")),
+                "type":        q.get("type", ""),
             }
             new_msgs.append(json.dumps(msg))
 
-        # keep seen_times bounded — sort numerically so we keep the most recent timestamps
+        # keep seen_times bounded
         if len(seen_times) > 5000:
             seen_times = set(sorted(seen_times)[-2500:])
 
@@ -122,7 +144,6 @@ async def handler(ws):
 # ── entry point ────────────────────────────────────────────────────────────────
 
 async def main():
-    # Initial auth
     try:
         _pihole_auth()
         print("[stream] Pi-hole auth OK")

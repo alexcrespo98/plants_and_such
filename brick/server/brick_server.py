@@ -2,9 +2,11 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json, os, time, urllib.request, urllib.error
 
-PIHOLE_API   = "http://localhost/api"
-PIHOLE_PASS  = "0990"
-STATE_FILE   = os.path.expanduser("~/Desktop/brick/state.json")
+PIHOLE_API  = "http://localhost/api"
+PIHOLE_PASS = "0990"
+STATE_FILE  = os.path.expanduser("~/Desktop/brick/state.json")
+PHONE_IP    = "192.168.0.9"
+PHONE_MAC   = "e6:8e:39:e7:64:36"
 
 _sid = None   # cached Pi-hole session id
 
@@ -58,7 +60,8 @@ def _set_group_enabled(name, enabled):
     g = _get_group(name)
     if g is None:
         raise RuntimeError(f"Pi-hole group '{name}' not found")
-    _pihole_request("PUT", f"/groups/{name}", {
+    gid = g["id"]
+    _pihole_request("PUT", f"/groups/{gid}", {
         "name": g["name"],
         "enabled": enabled,
         "comment": g.get("comment", ""),
@@ -67,6 +70,35 @@ def _set_group_enabled(name, enabled):
 def apply_focus(on: bool):
     _set_group_enabled("FocusON",  on)
     _set_group_enabled("FocusOFF", not on)
+
+# ── phone exclusion ────────────────────────────────────────────────────────────
+
+def _ensure_phone_excluded():
+    """Ensure phone (by MAC) is only in the FocusOFF group, never in FocusON."""
+    try:
+        focusoff = _get_group("FocusOFF")
+        if focusoff is None:
+            print("Warning: FocusOFF group not found — skipping phone exclusion")
+            return
+        focusoff_id = focusoff["id"]
+
+        clients_data = _pihole_request("GET", "/clients")
+        phone_exists = any(
+            c.get("client", "") in (PHONE_MAC, PHONE_IP)
+            for c in clients_data.get("clients", [])
+        )
+
+        if phone_exists:
+            _pihole_request("PUT", f"/clients/{PHONE_MAC}", {"groups": [focusoff_id]})
+        else:
+            _pihole_request("POST", "/clients", {
+                "client": PHONE_MAC,
+                "comment": "iPhone — always FocusOFF only",
+                "groups": [focusoff_id],
+            })
+        print(f"Phone ({PHONE_MAC}) assigned to FocusOFF group only")
+    except Exception as e:
+        print(f"Warning: Could not ensure phone exclusion: {e}")
 
 # ── state helpers ──────────────────────────────────────────────────────────────
 
@@ -148,11 +180,11 @@ class Handler(BaseHTTPRequestHandler):
                 if not domain:
                     self._json(400, {"error": "domain required"})
                     return
-                _pihole_request("POST", "/domains/deny", {
+                _pihole_request("POST", "/domains", {
                     "domain": domain,
-                    "comment": "blocked via brick",
+                    "type": "block",
                     "enabled": True,
-                    "type": "deny",
+                    "comment": "blocked via brick dashboard",
                 })
                 self._json(200, {"blocked": domain})
             except Exception as e:
@@ -162,10 +194,11 @@ class Handler(BaseHTTPRequestHandler):
         self._json(404, {"error": "not found"})
 
 if __name__ == "__main__":
-    # Ensure auth is established at startup
     try:
         _pihole_auth()
+        print("Pi-hole auth OK")
     except Exception as e:
         print(f"Warning: Pi-hole auth failed at startup: {e}")
+    _ensure_phone_excluded()
     print("Brick server listening on :5123")
     HTTPServer(("0.0.0.0", 5123), Handler).serve_forever()

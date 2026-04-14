@@ -1,12 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-focuson="$(sudo -n sqlite3 /etc/pihole/gravity.db "SELECT enabled FROM 'group' WHERE name='FocusON' LIMIT 1;")"
-
-if [[ "$focuson" == "1" ]]; then
-  sudo -n /usr/local/bin/brick-off >/dev/null
-  echo "Brick OFF!"
-else
-  sudo -n /usr/local/bin/brick-on >/dev/null
-  echo "Brick ON!"
-fi
+curl -s http://localhost:5123/toggle > /dev/null
+echo "Brick toggled"
